@@ -1,0 +1,52 @@
+{
+  "default_models": {
+    "topic_navigator": "gpt-4o",
+    "domain_expert": "claude-3-7-sonnet-20250219",
+    "learning_coordinator": "o3-mini"
+  },
+  "domains": ["python", "cybersecurity", "machine_learning"],
+  "default_user_profile": {
+    "topics_learned": [],
+    "interests": [],
+    "learning_style": "self_paced",
+    "complexity_preference": "beginner"
+  }
+}
+
+{
+  "complex_reasoning": {
+    "model_name": "claude-3-7-sonnet-20250219",
+    "params": {
+      "thinking_enabled": true,
+      "thinking_tokens": 3000,
+      "temperature": 0.1
+    }
+  },
+  "code_generation": {
+    "model_name": "claude-3-7-sonnet-20250219",
+    "params": {
+      "thinking_enabled": true,
+      "thinking_tokens": 2000,
+      "temperature": 0.1
+    }
+  },
+  "creative_writing": {
+    "model_name": "gpt-4o",
+    "params": {
+      "temperature": 0.7,
+      "top_p": 0.9
+    }
+  },
+  "factual_responses": {
+    "model_name": "gemini-2.0-pro-experimental",
+    "params": {
+      "temperature": 0.1
+    }
+  },
+  "quick_responses": {
+    "model_name": "gpt-4o-mini",
+    "params": {
+      "temperature": 0.3
+    }
+  }
+}
