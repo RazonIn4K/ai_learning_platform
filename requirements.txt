@@ -1,6 +1,17 @@
 # Core dependencies
-camel-ai>=0.2.36
-python-dotenv>=1.0.1
+python-dotenv>=0.19.0
+anthropic>=0.3.0
+openai>=1.0.0
+google-cloud-aiplatform>=1.25.0
+numpy>=1.21.0
+pandas>=1.3.0
+scikit-learn>=0.24.2
+torch>=1.9.0
+giotto-tda>=0.5.1
+gudhi>=3.7.0
+dowhy>=0.8
+pydstool>=0.91.0
+pycategories>=0.1.0
 rich>=13.9.0
 pydantic<2.10.0
 requests>=2.31.0

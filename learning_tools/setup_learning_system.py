@@ -7,72 +7,79 @@ This script checks that all necessary files are in place and creates the require
 import os
 import json
 from pathlib import Path
-import shutil
-import argparse
+from typing import Dict, Any
+from ai_learning_platform.utils.env_manager import EnvManager
 
-def setup_learning_system(topic_hierarchy_path, config_dir=None, data_dir=None):
-    """Set up the learning system with the necessary files and directories."""
-    # Create base directories
-    data_dir = Path(data_dir) if data_dir else Path("learning_data")
-    data_dir.mkdir(exist_ok=True)
+def setup_directories() -> Dict[str, Path]:
+    """Create necessary directories."""
+    dirs = {
+        'config': Path('configs'),
+        'learning_config': Path('learning_config'),
+        'data': Path('learning_data'),
+        'workspace': Path('workspace_data'),
+        'logs': Path('logs')
+    }
     
-    # Set up config directory
-    config_dir = Path(config_dir) if config_dir else Path("learning_config")
-    config_dir.mkdir(exist_ok=True)
-    
-    # Check if topic hierarchy file exists and copy it to the right location
-    topic_hierarchy = Path(topic_hierarchy_path)
-    if not topic_hierarchy.exists():
-        print(f"Error: Topic hierarchy file not found at {topic_hierarchy_path}")
-        return False
-    
-    # Copy topic hierarchy to config directory
-    target_path = config_dir / "topic_hierarchy.txt"
-    shutil.copy(topic_hierarchy, target_path)
-    print(f"Topic hierarchy copied to {target_path}")
-    
-    # Create a sample project context file if it doesn't exist
-    vs_context_path = config_dir / "vectorstrategist_context.json"
-    if not vs_context_path.exists():
-        sample_context = {
-            "project_name": "VectorStrategist",
-            "project_description": "AI security analysis framework",
-            "focus_areas": ["Red teaming", "Prompt injection"],
-            "components": [
-                {
-                    "name": "Security Manifold Engine",
-                    "description": "Differential geometry for security analysis"
-                }
-            ],
-            "objective": "Develop AI red teaming capabilities"
-        }
+    for dir_path in dirs.values():
+        dir_path.mkdir(parents=True, exist_ok=True)
         
-        with open(vs_context_path, 'w') as f:
-            json.dump(sample_context, f, indent=2)
-        print(f"Sample project context created at {vs_context_path}")
+    return dirs
+
+def create_config_files(dirs: Dict[str, Path]) -> None:
+    """Create necessary configuration files."""
+    # Create vectorstrategist context
+    vs_context = {
+        "project_name": "VectorStrategist",
+        "project_description": "A framework combining differential geometry, topology, causal inference, and category theory to analyze AI security vulnerabilities",
+        "focus_areas": [
+            "Red teaming competitions",
+            "Prompt injection attacks",
+            "Adversarial machine learning",
+            "Security manifold analysis",
+            "Large language model vulnerability assessment"
+        ],
+        "components": [
+            {
+                "name": "Security Manifold Engine",
+                "description": "Uses differential geometry and topological data analysis to map security boundaries in AI systems",
+                "technologies": ["GEF", "giotto-tda", "GUDHI"]
+            },
+            # ... other components ...
+        ]
+    }
     
-    print("\nSetup completed successfully!")
-    print("\nUsage instructions:")
-    print("1. To learn with VectorStrategist context:")
-    print(f"   python smart_agent_cli.py --project {vs_context_path} learn \"Your query here\"")
-    print("\n2. To track your progress:")
-    print("   python smart_agent_cli.py progress \"Topic name\"")
-    print("\n3. To get recommendations:")
-    print("   python smart_agent_cli.py recommend")
-    
-    return True
+    for config_dir in [dirs['config'], dirs['learning_config']]:
+        with open(config_dir / 'vectorstrategist_context.json', 'w') as f:
+            json.dump(vs_context, f, indent=2)
 
 def main():
-    parser = argparse.ArgumentParser(description='Setup the Smart Learning Agent system')
-    parser.add_argument('--topic-hierarchy', default='learning_config/topic_hierarchy.txt', 
-                       help='Path to the topic hierarchy file')
-    parser.add_argument('--config-dir', default='learning_config', 
-                       help='Path to the configuration directory')
-    parser.add_argument('--data-dir', default='learning_data', 
-                       help='Path to the data directory')
-    
-    args = parser.parse_args()
-    setup_learning_system(args.topic_hierarchy, args.config_dir, args.data_dir)
+    """Main setup function."""
+    try:
+        # Initialize environment
+        env_manager = EnvManager()
+        
+        # Create directories
+        dirs = setup_directories()
+        print("✓ Created necessary directories")
+        
+        # Create configuration files
+        create_config_files(dirs)
+        print("✓ Created configuration files")
+        
+        print("\nSetup completed successfully!")
+        print("\nUsage instructions:")
+        print("1. To learn with VectorStrategist context:")
+        print("   vs-learn --project learning_config/vectorstrategist_context.json learn \"Your query here\"")
+        print("\n2. To track your progress:")
+        print("   vs-learn progress \"Topic name\"")
+        print("\n3. To get recommendations:")
+        print("   vs-learn recommend")
+        
+        return True
+        
+    except Exception as e:
+        print(f"\n❌ Setup failed: {str(e)}")
+        return False
 
 if __name__ == "__main__":
     main()
