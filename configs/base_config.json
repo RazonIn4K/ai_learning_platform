@@ -3,7 +3,32 @@
     "provider": "anthropic",
     "model_name": "claude-3-opus-20240229",
     "temperature": 0.3,
-    "max_tokens": 4000
+    "max_tokens": 4000,
+    "fallback_models": [
+      {
+        "provider": "anthropic",
+        "model_name": "claude-3-sonnet-20240229",
+        "kwargs": {
+          "temperature": 0.3,
+          "max_tokens": 4000
+        }
+      },
+      {
+        "provider": "openai",
+        "model_name": "gpt-4",
+        "kwargs": {
+          "temperature": 0.3,
+          "max_tokens": 4000
+        }
+      }
+    ],
+    "backup_models": {
+      "google": {
+        "model_name": "gemini-pro",
+        "temperature": 0.3,
+        "max_tokens": 4000
+      }
+    }
   },
   "learning": {
     "mastery_threshold": 0.8,

@@ -20,9 +20,9 @@ class VectorStrategistTemplate(WorkspaceTemplate):
                 "python_development"
             ],
             custom_config={
-                "learning_style": "theory_to_practice",
-                "tracking_level": "comprehensive",
-                "project_focus": "ai_security"
+                "learning_style": "project_based",
+                "tracking_level": "detailed",
+                "project_focus": "security_manifolds"
             }
         )
     

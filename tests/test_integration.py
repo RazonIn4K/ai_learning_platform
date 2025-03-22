@@ -19,7 +19,8 @@ def create_test_workspace():
         enable_research=True,
         learning_style="balanced",
         model_type="standard",
-        tracking_level="detailed"
+        tracking_level="detailed",
+        project_focus="general"
     )
     
     user_profile = {

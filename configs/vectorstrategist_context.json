@@ -23,12 +23,13 @@
       "name": "Scale Dynamics Analyzer",
       "description": "Analyzes how security properties evolve across model scales",
       "technologies": ["HuggingFace", "PyDSTool"]
+    },
+    {
+      "name": "Multi-Paradigm Integration",
+      "description": "Uses category theory to create unified security abstractions",
+      "technologies": ["Pycategories"]
     }
   ],
-  "learning_priorities": [
-    "differential_geometry",
-    "topology",
-    "causal_inference",
-    "category_theory"
-  ]
+  "hardware": ["M2 MacBook Pro Max", "RTX 2060"],
+  "objective": "Develop advanced red teaming capabilities for AI systems with a focus on competition scenarios and prompt injection techniques"
 }

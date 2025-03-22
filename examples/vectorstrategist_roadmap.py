@@ -15,9 +15,10 @@ workspace = LearningWorkspace(
             "python_development"
         ],
         enable_research=True,
-        learning_style="theory_to_practice",
+        learning_style="project_based",
         model_type="advanced",
-        tracking_level="comprehensive"
+        tracking_level="detailed",
+        project_focus="security_manifolds"
     )
 )
 

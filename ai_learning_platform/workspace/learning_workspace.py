@@ -6,6 +6,7 @@ from .workspace_config import WorkspaceConfig
 from ..utils.topic_hierarchy import TopicHierarchy
 from ..utils.knowledge_mapper import KnowledgeMapper
 from ..utils.learning_profile_manager import LearningProfileManager
+from ..utils.config_manager import ConfigManager
 
 logger = logging.getLogger(__name__)
 
@@ -13,33 +14,33 @@ class LearningWorkspace:
     def __init__(
         self,
         config: Optional[WorkspaceConfig] = None,
-        user_profile: Optional[Dict[str, Any]] = None,
-        topic_hierarchy: Optional[TopicHierarchy] = None,
-        knowledge_mapper: Optional[KnowledgeMapper] = None
+        user_profile: Optional[Dict[str, Any]] = None
     ):
         """Initialize the learning workspace."""
+        config_manager = ConfigManager()
+        workspace_config = config_manager.get_component_config('workspace')
+        
         self.config = config or WorkspaceConfig(
-            domains=["python", "cybersecurity"],
-            enable_research=True,
-            learning_style="balanced",
-            model_type="standard",
-            tracking_level="detailed"
+            domains=workspace_config.get('domains', ["python", "cybersecurity"]),
+            enable_research=workspace_config.get('enable_research', True),
+            learning_style=workspace_config.get('learning_style', "balanced"),
+            model_type=workspace_config.get('model_type', "standard"),
+            tracking_level=workspace_config.get('tracking_level', "detailed"),
+            project_focus=workspace_config.get('project_focus', "general")
         )
-        self.user_profile = user_profile or {"user_id": "default", "learning_style": "balanced"}
-        self.topic_hierarchy = topic_hierarchy or TopicHierarchy()
-        self.knowledge_mapper = knowledge_mapper or KnowledgeMapper()
-        self.profile_manager = LearningProfileManager()
+        
+        self.user_profile = user_profile or config_manager.get_component_config('default_user_profile')
         self.agents = self._initialize_agents()
 
     def _initialize_agents(self) -> Dict[str, Any]:
-        """Initialize all required agents."""
-        config_dict = self.config.to_dict()  # Using the proper to_dict method
+        """Initialize all required agents with proper configuration."""
+        config_dict = self.config.to_dict()
         return {
-            "learning_coordinator": self._create_mock_agent("coordinator"),
-            "topic_navigator": self._create_mock_agent("navigator"),
-            "knowledge_agent": self._create_mock_agent("knowledge"),
-            "research_agent": self._create_mock_agent("research"),
-            "connection_expert": self._create_mock_agent("connection")
+            "learning_coordinator": LearningCoordinatorAgent(config_dict),
+            "topic_navigator": TopicNavigatorAgent(config_dict),
+            "knowledge_agent": KnowledgeAgent(config_dict),
+            "research_agent": ResearchAgent(config_dict),
+            "connection_expert": ConnectionExpertAgent(config_dict)
         }
 
     def _create_mock_agent(self, agent_type: str):

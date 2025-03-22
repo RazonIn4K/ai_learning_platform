@@ -1,6 +1,6 @@
 """Factory for creating and configuring learning workspaces."""
 
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional
 import logging
 import json
 from pathlib import Path
@@ -9,67 +9,78 @@ from .learning_workspace import LearningWorkspace, WorkspaceConfig
 from ..utils.topic_hierarchy import TopicHierarchy, create_default_hierarchy
 from ..utils.knowledge_mapper import KnowledgeMapper
 from ..utils.learning_profile_manager import LearningProfileManager
-from ..utils.config_loader import ConfigLoader
+from ..utils.config_manager import ConfigManager
 from ..utils.exceptions import ConfigurationError
+from ..config import ConfigManager
+from ..models import ModelManager
+from ..agents import AgentRegistry
 
 logger = logging.getLogger(__name__)
 
 class WorkspaceFactory:
-    """Factory for creating and configuring learning workspaces."""
+    """Factory for creating and configuring workspaces."""
     
     @classmethod
     def create_workspace(
         cls,
-        config_path: Optional[str] = None,
-        user_profile: Optional[Dict[str, Any]] = None,
-        domains: Optional[List[str]] = None,
-        model_type: str = "standard"
+        workspace_type: str,
+        config_overrides: Optional[Dict[str, Any]] = None
     ) -> LearningWorkspace:
-        """
-        Create a configured learning workspace.
+        """Create a configured workspace instance."""
+        config_manager = ConfigManager()
+        base_config = config_manager.get_config('workspace')
         
-        Args:
-            config_path: Path to workspace configuration file
-            user_profile: User profile information
-            domains: List of domain names to include
-            model_type: Type of model to use (standard, enhanced, etc.)
-            
-        Returns:
-            Configured LearningWorkspace instance
-        """
-        # Load configuration
-        config = cls._load_configuration(config_path)
+        # Apply type-specific configuration
+        if workspace_type != 'default':
+            type_config = config_manager.get_config(f'workspace_types').get(workspace_type, {})
+            base_config.update(type_config)
         
-        # Override with provided parameters
-        if domains:
-            config.domains = domains
-        if model_type:
-            config.model_type = model_type
-            
-        # Initialize components
-        topic_hierarchy = cls._initialize_topic_hierarchy()
-        knowledge_mapper = cls._initialize_knowledge_mapper(topic_hierarchy)
-        profile_manager = cls._initialize_profile_manager(user_profile)
+        # Apply overrides
+        if config_overrides:
+            base_config.update(config_overrides)
         
-        # Create workspace
-        workspace = LearningWorkspace(
-            config=config,
-            user_profile=user_profile,
-            topic_hierarchy=topic_hierarchy,
-            knowledge_mapper=knowledge_mapper,
-            profile_manager=profile_manager
+        # Validate final configuration
+        config_manager.validate_config('workspace')
+        
+        # Initialize required components
+        model_manager = ModelManager()
+        agents = cls._initialize_agents(base_config)
+        
+        return LearningWorkspace(
+            config=base_config,
+            model_manager=model_manager,
+            agents=agents
         )
+    
+    @classmethod
+    def _initialize_agents(
+        cls,
+        config: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Initialize required agents for the workspace."""
+        agent_registry = AgentRegistry()
+        agents = {}
         
-        logger.info(f"Created workspace with {len(config.domains)} domains and {config.model_type} model type")
-        return workspace
+        for agent_type in config.get('required_agents', []):
+            agents[agent_type] = agent_registry.create_agent(agent_type, config)
+            
+        return agents
+    
+    @classmethod
+    def create_vectorstrategist_workspace(
+        cls,
+        config_overrides: Optional[Dict[str, Any]] = None
+    ) -> LearningWorkspace:
+        """Create a specialized VectorStrategist workspace."""
+        return cls.create_workspace('vectorstrategist', config_overrides)
     
     @classmethod
     def _load_configuration(cls, config_path: Optional[str]) -> WorkspaceConfig:
         """Load workspace configuration from file or defaults."""
         try:
             if config_path:
-                config_loader = ConfigLoader()
-                config_data = config_loader.load_json_config(config_path)
+                config_manager = ConfigManager()
+                config_data = config_manager.load_json_config(config_path)
                 return WorkspaceConfig(**config_data)
             else:
                 # Default configuration

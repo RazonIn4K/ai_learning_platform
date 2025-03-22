@@ -1,5 +1,5 @@
-from dataclasses import dataclass
-from typing import Dict, List, Optional
+from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Any
 
 @dataclass
 class AgentConfig:
@@ -8,6 +8,31 @@ class AgentConfig:
     default_timeout: int = 30
     fallback_enabled: bool = True
     cache_enabled: bool = True
+    
+    # Enhanced granular settings
+    performance_settings: Dict[str, Any] = field(default_factory=lambda: {
+        "batch_size": 32,
+        "concurrent_requests": 4,
+        "request_timeout": 15,
+        "cache_ttl": 3600
+    })
+    
+    retry_settings: Dict[str, Any] = field(default_factory=lambda: {
+        "backoff_factor": 1.5,
+        "max_backoff": 60,
+        "jitter": True,
+        "retry_on_errors": ["timeout", "rate_limit"]
+    })
+    
+    model_settings: Dict[str, Any] = field(default_factory=lambda: {
+        "temperature_ranges": {
+            "creative": (0.7, 0.9),
+            "balanced": (0.3, 0.7),
+            "precise": (0.1, 0.3)
+        },
+        "context_window": 8192,
+        "response_format": "json"
+    })
     
     # Domain-specific settings
     domains: List[str] = None

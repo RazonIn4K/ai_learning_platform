@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 from typing import Dict, Any, Optional
-from .utils.config_loader import ConfigLoader
+from .utils.config_manager import ConfigManager
 from .models.model_handler import ModelHandler
 from .knowledge.knowledge_graph import KnowledgeGraph
 from .tracking.progress_tracker import ProgressTracker
@@ -11,8 +11,8 @@ class PlatformInitializer:
     """Initializes the AI Learning Platform components."""
     
     def __init__(self, config_path: Optional[str] = None):
-        self.config_loader = ConfigLoader(config_path)
-        self.config = self.config_loader.get_config()
+        self.config_manager = ConfigManager()
+        self.config = self.config_manager.get_config(config_path)
         self._setup_logging()
         
     def _setup_logging(self):
@@ -30,7 +30,7 @@ class PlatformInitializer:
         """Initialize all platform components."""
         try:
             # Initialize core components
-            model_handler = ModelHandler(self.config)
+            model_handler = ModelHandler()
             knowledge_graph = KnowledgeGraph()
             
             # Set up storage directory

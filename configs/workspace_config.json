@@ -19,7 +19,13 @@
     "domain_expert": "claude-3-7-sonnet-20250219",
     "learning_coordinator": "claude-3-7-sonnet-20250219"
   },
-  "domains": ["python", "machine_learning", "cybersecurity"],
+  "domains": [
+    "python",
+    "machine_learning",
+    "cybersecurity",
+    "red_teaming",
+    "ai_security"
+  ],
   "default_user_profile": {
     "topics_learned": [],
     "interests": [],
@@ -53,14 +59,5 @@
   "enable_research": true,
   "learning_style": "balanced",
   "model_type": "standard",
-  "tracking_level": "detailed",
-  "profiles": {
-    "default": {
-      "user_id": "default",
-      "learning_style": "self_paced",
-      "complexity_preference": "beginner",
-      "interests": ["python", "machine learning"],
-      "topics_learned": []
-    }
-  }
+  "tracking_level": "detailed"
 }

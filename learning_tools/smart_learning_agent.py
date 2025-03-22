@@ -385,48 +385,47 @@ class SmartLearningAgent:
             enable_research=True,
             learning_style="adaptive",
             model_type="advanced",
-            tracking_level="detailed"
+            tracking_level="detailed",
+            project_focus="general"
         )
     
-    def _extract_domains(self, topic_id):
-        """Extract relevant domains from a topic ID."""
+    def _extract_domains(self, topic_id: str) -> list:
+        """Extract relevant domains based on topic ID."""
         domains = []
         
-        # Map top-level categories to domains
-        domain_mappings = {
-            "1": ["mathematics", "theory", "foundations"],  # Computing Foundations
-            "2": ["hardware", "architecture", "low_level"],  # Hardware Systems
-            "3": ["operating_systems", "system", "firmware"],  # System Software
-            "4": ["programming", "software_engineering", "coding"],  # Programming
-            "5": ["networks", "distributed_systems"],  # Networking
-            "6": ["databases", "data_science", "analytics"],  # Data Management
-            "7": ["ui", "ux", "design"],  # User Interfaces
-            "8": ["ai", "machine_learning", "nlp", "computer_vision"],  # AI
-            "9": ["security", "cryptography", "network_security"],  # Cybersecurity
-            "10": ["cloud", "edge", "iot", "quantum", "blockchain"],  # Emerging Computing
-            "11": ["optimization", "efficiency", "scalability"],  # Performance
-            "12": ["ethics", "regulations", "privacy"]  # Legal & Ethical
-        }
+        # Base domains
+        if topic_id.startswith('9'):  # Security-related topics
+            domains.append('security')
         
-        # Add domains based on top-level category
-        if topic_id:
-            top_level = topic_id.split('.')[0]
-            if top_level in domain_mappings:
-                domains.extend(domain_mappings[top_level])
-            
-            # Add more specific domains for certain subcategories
-            if topic_id.startswith('8.2'):  # Machine Learning
-                domains.append('machine_learning')
-            elif topic_id.startswith('8.3'):  # NLP
-                domains.append('natural_language_processing')
-            elif topic_id.startswith('8.4'):  # Computer Vision
-                domains.append('computer_vision')
-            elif topic_id.startswith('9.2'):  # Cryptography
-                domains.append('cryptography')
-            elif topic_id.startswith('9.7'):  # AI in Cybersecurity
-                domains.extend(['ai_security', 'threat_detection'])
+        # Specialized domains
+        if topic_id.startswith('9.6.4'):  # Red Team Operations
+            domains.append('red_teaming')
+        elif topic_id.startswith('9.7.4'):  # Adversarial Machine Learning
+            domains.extend(['ai_security', 'adversarial_ml'])
+        elif topic_id.startswith('9.7.4.1'):  # Attack Techniques against AI
+            domains.extend(['ai_attacks', 'prompt_injection'])
+        elif topic_id.startswith('8.3.6'):  # Large Language Models
+            domains.extend(['llm', 'nlp'])
         
         return domains
+
+    def _extract_keywords(self, text: str) -> list:
+        """Extract keywords from text for topic matching."""
+        # Add project keywords to the topic index for better topic matching
+        keywords = []
+        text_lower = text.lower()
+        
+        # Security-related keywords
+        if 'red team' in text_lower:
+            keywords.extend(['red_team', 'security_testing', 'penetration_testing'])
+        if 'prompt injection' in text_lower:
+            keywords.extend(['prompt_injection', 'llm_security', 'ai_attacks'])
+        if 'security' in text_lower:
+            keywords.extend(['security', 'cybersecurity', 'infosec'])
+        if 'adversarial' in text_lower:
+            keywords.extend(['adversarial_ml', 'ai_security', 'model_attacks'])
+        
+        return list(set(keywords))
     
     def _create_user_profile(self, topic_id):
         """Create a user profile for the learning workspace."""

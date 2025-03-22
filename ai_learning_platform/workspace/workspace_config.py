@@ -9,6 +9,7 @@ class WorkspaceConfig:
     learning_style: str
     model_type: str
     tracking_level: str
+    project_focus: str
 
     def __init__(
         self,
@@ -16,13 +17,15 @@ class WorkspaceConfig:
         enable_research: bool = False,
         learning_style: str = "balanced",
         model_type: str = "standard",
-        tracking_level: str = "basic"
+        tracking_level: str = "basic",
+        project_focus: str = "general"
     ):
         self.domains = domains or ["general"]
         self.enable_research = enable_research
         self.learning_style = learning_style
         self.model_type = model_type
         self.tracking_level = tracking_level
+        self.project_focus = project_focus
         self._validate()
 
     def _validate(self):
@@ -41,5 +44,6 @@ class WorkspaceConfig:
             "enable_research": self.enable_research,
             "learning_style": self.learning_style,
             "model_type": self.model_type,
-            "tracking_level": self.tracking_level
+            "tracking_level": self.tracking_level,
+            "project_focus": self.project_focus
         }

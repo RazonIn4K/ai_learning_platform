@@ -1,13 +1,34 @@
 # smart_agent_cli.py
+import sys
 import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import argparse
 import json
 from pathlib import Path
 from typing import Dict, Any
-from .smart_learning_agent import SmartLearningAgent
-from ..ai_learning_platform.utils.config_loader import ConfigLoader
-from ..ai_learning_platform.workspace import LearningWorkspace
-from ..ai_learning_platform.tracking.progress_tracker import ProgressTracker
+from ai_learning_platform.learning_tools.smart_learning_agent import SmartLearningAgent
+from ai_learning_platform.utils.config_loader import ConfigLoader
+from ai_learning_platform.workspace import LearningWorkspace
+from ai_learning_platform.tracking.progress_tracker import ProgressTracker
+
+def print_learning_progress(progress: Dict[str, Any]) -> None:
+    """Print learning progress details."""
+    print("\n===== Learning Progress =====")
+    if not progress:
+        print("No progress data available.")
+        return
+        
+    for category, data in progress.items():
+        if isinstance(data, dict):
+            print(f"\n{category.replace('_', ' ').title()}:")
+            for key, value in data.items():
+                if isinstance(value, (int, float)):
+                    print(f"  {key.replace('_', ' ').title()}: {value:.1f}%")
+                else:
+                    print(f"  {key.replace('_', ' ').title()}: {value}")
+        else:
+            print(f"{category.replace('_', ' ').title()}: {data}")
 
 def print_learning_path(learning_path):
     """Print a formatted learning path."""
@@ -52,7 +73,7 @@ def print_recommendations(recommendations):
 def setup_workspace(config_path: str, project_path: str = None) -> LearningWorkspace:
     """Initialize workspace with configuration and project context."""
     config_loader = ConfigLoader(config_path)
-    config = config_loader.get_config()
+    config = config_loader.load_config()
     
     workspace = LearningWorkspace(
         profile_path=config.get("storage", {}).get("path", "data/progress")
@@ -69,9 +90,9 @@ def main():
     parser = argparse.ArgumentParser(description='Smart Learning Agent')
     parser.add_argument('--project', help='Path to project context file')
     parser.add_argument('--config', help='Path to config file', 
-                       default="learning_config/base_config.json")
+                       default="configs/base_config.json")
     parser.add_argument('--data-dir', help='Path to data directory', 
-                       default="learning_data")
+                       default="data/learning")
     subparsers = parser.add_subparsers(dest='command', help='Command to run')
     
     # Learn command
@@ -88,10 +109,10 @@ def main():
                                help='Progress status')
     
     # Status command
-    status_parser = subparsers.add_parser('status', help='Get learning progress')
+    subparsers.add_parser('status', help='Get learning progress')
     
     # Recommend command
-    recommend_parser = subparsers.add_parser('recommend', help='Get learning recommendations')
+    subparsers.add_parser('recommend', help='Get learning recommendations')
     
     # Template commands
     template_parser = subparsers.add_parser('template', help='Workspace template operations')
@@ -114,7 +135,7 @@ def main():
     
     if args.command == 'learn':
         if args.template:
-            from ..ai_learning_platform.workspace import WorkspaceTemplate
+            from ai_learning_platform.workspace import WorkspaceTemplate
             template = WorkspaceTemplate(args.template)
             workspace = template.build_workspace([])
         
@@ -128,8 +149,13 @@ def main():
         else:
             print(f"\n{response.get('message', 'No learning path created.')}")
     
+    elif args.command == 'progress':
+        tracker = ProgressTracker(args.data_dir)
+        tracker.update_progress(args.topic, args.status)
+        print(f"Updated progress for {args.topic} to {args.status}")
+    
     elif args.command == 'template':
-        from ..ai_learning_platform.workspace import WorkspaceTemplate
+        from ai_learning_platform.workspace import WorkspaceTemplate
         
         if args.template_command == 'create':
             template = WorkspaceTemplate(args.name)

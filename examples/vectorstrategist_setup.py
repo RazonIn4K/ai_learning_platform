@@ -16,7 +16,8 @@ workspace = LearningWorkspace(
         enable_research=True,
         learning_style="project_based",
         model_type="advanced",
-        tracking_level="detailed"
+        tracking_level="detailed",
+        project_focus="security_manifolds"
     )
 )
 

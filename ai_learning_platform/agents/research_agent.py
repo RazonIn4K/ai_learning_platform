@@ -1,6 +1,7 @@
 import logging
 from typing import Dict, List, Any, Optional
 import json
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -97,7 +98,8 @@ class ResearchAgent:
             "complexity": "high"
         }
     
-    def research_topic(self, query: str, topics: List[str], depth: str = "medium", sources: List[str] = None) -> Dict[str, Any]:
+    async def research_topic(self, query: str, topics: List[str], depth: str = "medium", 
+                           sources: List[str] = None) -> Dict[str, Any]:
         """
         Conduct research on a topic based on the query.
         
@@ -110,36 +112,39 @@ class ResearchAgent:
         Returns:
             Dictionary with research results
         """
-        # This would typically involve external API calls or database lookups
-        # For now, return a mock research result
-        sources_used = sources or ["general"]
+        # Enhanced research pipeline
+        analysis = await self._analyze_research_needs(query, topics)
+        search_strategy = self._determine_search_strategy(analysis, depth)
         
-        if depth == "basic":
-            detail_level = "overview"
-            resources = 3
-        elif depth == "advanced":
-            detail_level = "comprehensive"
-            resources = 8
-        else:  # medium
-            detail_level = "detailed"
-            resources = 5
-        
-        # Mock research results based on topics
-        results = {}
+        results = []
         for topic in topics:
-            results[topic] = {
-                "summary": f"Research summary for {topic} ({detail_level} level)",
-                "sources": [f"Source {i} for {topic}" for i in range(1, resources+1)],
-                "key_concepts": [f"Concept {i} for {topic}" for i in range(1, 4)],
-                "detail_level": detail_level
-            }
+            # Parallel research across multiple sources
+            topic_results = await asyncio.gather(*[
+                self._search_source(topic, source, search_strategy)
+                for source in (sources or self.default_sources)
+            ])
+            
+            # Cross-reference and validate findings
+            validated_results = self._cross_validate_findings(topic_results)
+            
+            # Synthesize information
+            synthesis = self._synthesize_information(validated_results, depth)
+            
+            results.append({
+                'topic': topic,
+                'findings': synthesis,
+                'confidence': self._calculate_confidence(validated_results),
+                'sources': [r['source'] for r in topic_results if r['quality'] > 0.7]
+            })
         
         return {
-            "query": query,
-            "results_by_topic": results,
-            "depth": depth,
-            "sources_used": sources_used,
-            "completion_status": "success"
+            'results': results,
+            'analysis': analysis,
+            'meta': {
+                'depth': depth,
+                'coverage': self._calculate_coverage(results),
+                'quality_score': self._calculate_quality_score(results)
+            }
         }
     
     def _format_research_results(self, research_results: Dict[str, Any]) -> str:

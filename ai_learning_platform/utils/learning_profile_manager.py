@@ -12,55 +12,51 @@ class LearningProfileManager:
     """
     def __init__(self, config_path: str = "configs/workspace_config.json"):
         self.config_path = config_path
-        self.config = self.load_config()
+        self.config = self._load_config()
 
-    def load_config(self) -> Dict[str, Any]:
-        """
-        Loads the configuration from the specified file.
-        """
+    def _load_config(self) -> Dict[str, Any]:
         try:
-            with open(self.config_path) as f:
+            with open(self.config_path, 'r') as f:
                 return json.load(f)
         except FileNotFoundError:
-            return {}
-        except json.JSONDecodeError:
-            print(f"Error: Could not decode JSON from {self.config_path}. Returning an empty config.")
-            return {}
+            return {"profiles": {}}
 
     def save_config(self) -> None:
-        """
-        Saves the current configuration to the specified file.
-        """
-        try:
-            with open(self.config_path, "w") as f:
-                json.dump(self.config, f, indent=4)
-        except Exception as e:
-            print(f"Error: Could not save config to {self.config_path}: {e}")
+        os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
+        with open(self.config_path, 'w') as f:
+            json.dump(self.config, f, indent=2)
 
-    def get_profile(self, profile_name: str) -> Optional[Dict[str, Any]]:
-        """
-        Retrieves a specific learning profile.
-        """
-        return self.config.get("profiles", {}).get(profile_name)
+    def profile_exists(self, user_id: str) -> bool:
+        """Check if a profile exists for the given user ID."""
+        return user_id in self.config.get("profiles", {})
 
-    def create_profile(self, profile_name: str, profile_data: Dict[str, Any]) -> None:
-        """
-        Creates a new learning profile.
-        """
+    def load_history(self, user_id: str, history_data: list) -> bool:
+        """Load learning history for a user."""
+        profile = self.get_profile(user_id)
+        if not profile:
+            return False
+        profile["session_history"] = history_data
+        self.update_profile(user_id, profile)
+        return True
+
+    def create_profile(self, profile_data: Dict[str, Any]) -> None:
+        """Creates a new learning profile."""
+        profile_name = profile_data.get("user_id", "default")
         if "profiles" not in self.config:
             self.config["profiles"] = {}
         self.config["profiles"][profile_name] = profile_data
         self.save_config()
 
-    def update_profile(self, profile_name: str, profile_data: Dict[str, Any]) -> None:
-        """
-        Updates an existing learning profile.
-        """
-        if profile_name in self.config.get("profiles", {}):
-            self.config["profiles"][profile_name].update(profile_data)
-            self.save_config()
-        else:
-            print(f"Error: Profile '{profile_name}' not found.")
+    def get_profile(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """Get a user's learning profile."""
+        return self.config.get("profiles", {}).get(user_id)
+
+    def update_profile(self, user_id: str, profile_data: Dict[str, Any]) -> None:
+        """Update a user's learning profile."""
+        if "profiles" not in self.config:
+            self.config["profiles"] = {}
+        self.config["profiles"][user_id] = profile_data
+        self.save_config()
 
     def delete_profile(self, profile_name: str) -> None:
         """
@@ -338,3 +334,41 @@ class LearningProfileManager:
                 profile["mastered_topics"].append(topic)
                 # Save again with mastered topics updated
                 self.update_profile(user_id, profile)
+
+    def get_learning_progress(self, user_id: str) -> Dict[str, Any]:
+        """Get learning progress for a user."""
+        profile = self.get_profile(user_id)
+        if not profile:
+            return {}
+        return {
+            "completed_topics": profile.get("topics_learned", []),
+            "current_progress": profile.get("current_progress", {}),
+            "mastery_levels": profile.get("mastery_levels", {})
+        }
+
+    def update_learning_progress(self, user_id: str, topic: str, status: str) -> None:
+        """Update learning progress for a specific topic."""
+        profile = self.get_profile(user_id)
+        if not profile:
+            profile = {
+                "user_id": user_id,
+                "topics_learned": [],
+                "current_progress": {},
+                "mastery_levels": {}
+            }
+        
+        if status == "completed":
+            if topic not in profile["topics_learned"]:
+                profile["topics_learned"].append(topic)
+            profile["current_progress"][topic] = 100
+        elif status == "in_progress":
+            if topic in profile["topics_learned"]:
+                profile["topics_learned"].remove(topic)
+            profile["current_progress"][topic] = 50
+        elif status == "reset":
+            if topic in profile["topics_learned"]:
+                profile["topics_learned"].remove(topic)
+            profile["current_progress"].pop(topic, None)
+            profile["mastery_levels"].pop(topic, None)
+        
+        self.update_profile(user_id, profile)
