@@ -1,16 +1,7 @@
 """Utility functions for the AI Learning Platform."""
 
-from .topic_hierarchy import TopicHierarchy, Topic, load_topic_hierarchy
-from .config_loader import ConfigLoader, get_config_loader
-from .knowledge_mapper import KnowledgeMapper
-from .learning_profile_manager import LearningProfileManager  # Added missing import
+from .config_loader import ConfigLoader
+from .env_manager import EnvManager
+from .knowledge_explorer import KnowledgeExplorer
 
-__all__ = [
-    "TopicHierarchy",
-    "Topic",
-    "load_topic_hierarchy",
-    "ConfigLoader",
-    "get_config_loader",
-    "KnowledgeMapper",
-    "LearningProfileManager"
-]
+__all__ = ['ConfigLoader', 'EnvManager', 'KnowledgeExplorer']

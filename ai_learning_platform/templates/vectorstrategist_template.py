@@ -1,4 +1,4 @@
-from ..workspace.workspace_template import WorkspaceTemplate
+from .workspace_template import WorkspaceTemplate
 from pathlib import Path
 import json
 

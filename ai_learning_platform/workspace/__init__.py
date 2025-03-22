@@ -1,6 +1,6 @@
-"""Workspace components for the AI Learning Platform."""
+"""Workspace management for AI Learning Platform."""
 
-from .workspace_config import WorkspaceConfig
 from .learning_workspace import LearningWorkspace
+from .workspace_config import WorkspaceConfig
 
-__all__ = ["LearningWorkspace", "WorkspaceConfig"]
+__all__ = ['LearningWorkspace', 'WorkspaceConfig']

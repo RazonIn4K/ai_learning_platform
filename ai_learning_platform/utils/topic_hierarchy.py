@@ -18,6 +18,18 @@ class Topic:
     estimated_duration: timedelta
     learning_outcomes: Optional[List[str]] = field(default_factory=list)
     prerequisites: List["Topic"] = field(default_factory=list)
+    subtopics: List["Topic"] = field(default_factory=list)
+
+    @property
+    def level(self) -> int:
+        """Return the hierarchical level based on ID (e.g., '1.1.2' -> 3)."""
+        return len(self.id.split('.'))
+
+    @property
+    def parent_id(self) -> Optional[str]:
+        """Return the parent topic ID (e.g., '1.1.2' -> '1.1')."""
+        parts = self.id.split('.')
+        return '.'.join(parts[:-1]) if len(parts) > 1 else None
 
     def add_prerequisite(self, prerequisite: "Topic") -> None:
         """Add a prerequisite topic."""
@@ -112,24 +124,50 @@ def load_topic_hierarchy(filepath: str) -> TopicHierarchy:
         
         hierarchy = TopicHierarchy()
         
-        for topic_data in data.get("topics", []):
+        # Recursive function to process topics and their subtopics
+        def process_topic(topic_data, parent_id=None):
+            # Create default values for backward compatibility
+            topic_id = topic_data.get("id", "")
+            topic_name = topic_data.get("name", "")
+            
+            # For backward compatibility, use title if name is not present
+            title = topic_data.get("title", topic_name)
+            
+            # Set default values for required fields if not present
+            description = topic_data.get("description", f"Description for {title}")
+            complexity = topic_data.get("complexity", "intermediate")
+            duration_seconds = topic_data.get("estimated_duration", 3600)  # Default 1 hour
+            
             topic = Topic(
-                id=topic_data["id"],
-                title=topic_data["title"],
-                description=topic_data["description"],
-                complexity=topic_data["complexity"],
-                estimated_duration=timedelta(seconds=topic_data["estimated_duration"]),
+                id=topic_id,
+                title=title,
+                description=description,
+                complexity=complexity,
+                estimated_duration=timedelta(seconds=duration_seconds),
                 learning_outcomes=topic_data.get("learning_outcomes", [])
             )
+            
             hierarchy.add_topic(topic)
+            
+            # Process subtopics if present
+            for subtopic_data in topic_data.get("subtopics", []):
+                subtopic = process_topic(subtopic_data, topic_id)
+                topic.subtopics.append(subtopic)
+            
+            return topic
+        
+        # Process all top-level topics
+        for topic_data in data.get("topics", []):
+            process_topic(topic_data)
         
         # Add prerequisites after all topics are loaded
-        for topic_data in data.get("topics", []):
-            topic = hierarchy.get_topic(topic_data["id"])
-            for prereq_id in topic_data.get("prerequisites", []):
-                prereq = hierarchy.get_topic(prereq_id)
-                if prereq:
-                    topic.add_prerequisite(prereq)
+        for topic_id, topic in hierarchy.topics.items():
+            # If parent_id exists, add it as a prerequisite
+            parent_id = topic.parent_id
+            if parent_id and parent_id in hierarchy.topics:
+                parent = hierarchy.get_topic(parent_id)
+                if parent:
+                    topic.add_prerequisite(parent)
         
         logger.info(f"Successfully loaded topic hierarchy from {filepath}")
         return hierarchy
