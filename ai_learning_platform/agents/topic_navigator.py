@@ -59,12 +59,12 @@ class TopicNavigatorAgent(BaseLearningAgent):
         return {
             "identified_topics": topics,
             "current_knowledge": knowledge_state,
-            "suggested_path": self._create_learning_path(topics, knowledge_state),
+            "suggested_path": self._generate_learning_path(topics, knowledge_state),
             "prerequisites": self._identify_prerequisites(topics),
             "estimated_time": self._estimate_learning_time(topics)
         }
 
-    def _create_learning_path(
+    def _generate_learning_path(
         self,
         topics: List[str],
         knowledge_state: Dict[str, Any]
@@ -72,7 +72,8 @@ class TopicNavigatorAgent(BaseLearningAgent):
         """Create personalized learning path."""
         path = []
         for topic in topics:
-            prerequisites = self._get_prerequisites(topic)
+            prerequisites = self._check_prerequisites(topic)
+            
             missing_prereqs = [
                 p for p in prerequisites 
                 if not self._check_prerequisite_mastery(p, knowledge_state)
@@ -93,7 +94,7 @@ class TopicNavigatorAgent(BaseLearningAgent):
                 "estimated_time": self._estimate_topic_time(topic),
                 "subtopics": self._get_subtopics(topic)
             })
-            
+        
         return path
 
     def _build_learning_graph(self) -> nx.DiGraph:
@@ -355,7 +356,7 @@ class TopicNavigatorAgent(BaseLearningAgent):
         )
         
         # Create initial learning path
-        path = self._create_learning_path(topics, knowledge_state)
+        path = self._generate_learning_path(topics, knowledge_state)
         
         # Enrich path with additional metadata
         enriched_path = []
