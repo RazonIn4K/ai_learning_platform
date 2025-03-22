@@ -6,13 +6,34 @@ from dataclasses import dataclass, field
 logger = logging.getLogger(__name__)
 
 class BaseLearningAgent:
+    """
+    Base class for all learning agents in the platform.
+    
+    The BaseLearningAgent provides a foundation for specialized agents with common
+    functionality for processing queries, handling errors, and executing specialized functions.
+    It implements a pattern where specialized functionality is exposed through a unified
+    interface that handles validation, error handling, and logging.
+    
+    Key Design Patterns:
+    - Template Method: The process_query method defines a skeleton algorithm that specialized
+      agents can customize by overriding the _analyze_query method.
+    - Facade: Provides a simplified interface to the complex subsystem of model interactions.
+    - Strategy: Different agent implementations can be swapped in as different strategies for
+      handling learning queries.
+    
+    Usage:
+    Specialized agents should inherit from this class and implement the _analyze_query method
+    at minimum. Additional specialized functionality should be implemented as methods starting
+    with an underscore, which can then be called through the specialized_function method.
+    """
+    
     def __init__(self, model_name: str, model_params: Dict[str, Any], system_message: Optional[str] = None):
         """Initialize the base learning agent.
         
         Args:
-            model_name: Name of the model to use
-            model_params: Parameters for the model
-            system_message: Optional system message for the model
+            model_name: Name of the model to use (e.g., "gpt-4", "claude-3-sonnet")
+            model_params: Parameters for the model (e.g., temperature, max_tokens)
+            system_message: Optional system message for the model that defines its behavior
         """
         self.model_name = model_name
         self.model_params = model_params
@@ -55,7 +76,45 @@ class BaseLearningAgent:
         return {}
 
     def specialized_function(self, function_name: str, **kwargs) -> Any:
-        """Execute specialized agent functions with error handling and validation."""
+        """
+        Execute specialized agent functions with error handling and validation.
+        
+        This method implements a controlled access pattern for specialized functionality,
+        providing a unified interface with consistent error handling, parameter validation,
+        and logging. It's designed to make specialized agent capabilities more robust and
+        maintainable by centralizing common concerns.
+        
+        The pattern works as follows:
+        1. Validate that the requested function exists (must be prefixed with '_')
+        2. Validate that all required parameters are provided
+        3. Execute the function with appropriate logging
+        4. Handle and log any exceptions that occur
+        
+        Args:
+            function_name: Name of the specialized function to execute (without '_' prefix)
+            **kwargs: Parameters to pass to the specialized function
+            
+        Returns:
+            Result of the specialized function
+            
+        Raises:
+            ValueError: If the function doesn't exist or required parameters are missing
+            Various exceptions: Any exceptions raised by the specialized function
+            
+        Example:
+            ```python
+            # Define a specialized function in your agent subclass
+            def _calculate_topic_similarity(self, topic1: str, topic2: str) -> float:
+                # Implementation...
+                
+            # Call it through the specialized_function interface
+            similarity = agent.specialized_function(
+                "calculate_topic_similarity",
+                topic1="python",
+                topic2="programming"
+            )
+            ```
+        """
         try:
             # Validate function exists
             if not hasattr(self, f"_{function_name}"):
@@ -123,3 +182,50 @@ class BaseLearningAgent:
         missing_params = required_params - set(params.keys())
         if missing_params:
             raise ValueError(f"Missing required parameters: {', '.join(missing_params)}")
+            
+    def process_query(self, query: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """
+        Process a user query and return a response.
+        
+        Args:
+            query: The user's query
+            context: Optional context information
+            
+        Returns:
+            Dictionary containing the response
+        """
+        try:
+            # Default implementation - analyze the query and return a response
+            analysis = self._analyze_query(query, context or {})
+            
+            # Process the query based on the analysis
+            return {
+                "content": f"Processed query: {query[:50]}...",
+                "analysis": analysis,
+                "agent": self.__class__.__name__
+            }
+        except Exception as e:
+            logger.error(f"Error processing query: {str(e)}", exc_info=True)
+            return {
+                "content": "I encountered an error processing your query.",
+                "error": str(e),
+                "agent": self.__class__.__name__
+            }
+            
+    def _analyze_query(self, query: str, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Analyze a user query to determine its characteristics.
+        
+        Args:
+            query: The user's query
+            context: Context information
+            
+        Returns:
+            Dictionary with analysis results
+        """
+        # Base implementation - should be overridden by specialized agents
+        return {
+            "query_type": "general",
+            "complexity": "medium",
+            "topics": []
+        }

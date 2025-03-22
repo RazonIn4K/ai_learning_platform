@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from .learning_workspace import LearningWorkspace, WorkspaceConfig
-from ..utils.topic_hierarchy import TopicHierarchy
+from ..utils.topic_hierarchy import TopicHierarchy, create_default_hierarchy
 from ..utils.knowledge_mapper import KnowledgeMapper
 from ..utils.learning_profile_manager import LearningProfileManager
 from ..utils.config_loader import ConfigLoader
@@ -87,7 +87,7 @@ class WorkspaceFactory:
     @classmethod
     def _initialize_topic_hierarchy(cls) -> TopicHierarchy:
         """Initialize topic hierarchy component."""
-        return TopicHierarchy()
+        return create_default_hierarchy()
     
     @classmethod
     def _initialize_knowledge_mapper(cls, topic_hierarchy: TopicHierarchy) -> KnowledgeMapper:
