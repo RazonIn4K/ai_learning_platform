@@ -1,0 +1,29 @@
+[
+  {
+    "id": "python_basics",
+    "metadata": {
+      "title": "Python Basics",
+      "description": "Fundamental Python programming concepts",
+      "difficulty": "beginner",
+      "prerequisites": []
+    }
+  },
+  {
+    "id": "web_development_basics",
+    "metadata": {
+      "title": "Web Development Fundamentals",
+      "description": "Basic concepts of web development",
+      "difficulty": "beginner",
+      "prerequisites": ["python_basics"]
+    }
+  },
+  {
+    "id": "flask_basics",
+    "metadata": {
+      "title": "Flask Framework Basics",
+      "description": "Introduction to Flask web framework",
+      "difficulty": "intermediate",
+      "prerequisites": ["python_basics", "web_development_basics"]
+    }
+  }
+]

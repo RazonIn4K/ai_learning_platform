@@ -1,12 +1,14 @@
 from ai_learning_platform.workspace import LearningWorkspace
-from ai_learning_platform.workspace.learning_workspace import WorkspaceConfig
+from ai_learning_platform.workspace.workspace_config import WorkspaceConfig
 
 # Initialize a learning-focused workspace
 workspace = LearningWorkspace(
     WorkspaceConfig(
-        primary_focus="technical_learning",
-        secondary_focus="business_awareness",
-        learning_style="self_taught"
+        domains=["web_development", "system_design", "business"],
+        enable_research=True,
+        learning_style="self_taught",
+        model_type="advanced",
+        tracking_level="detailed"
     )
 )
 
@@ -24,13 +26,24 @@ I want to focus on learning but keep future monetization in mind.
 # Process the learning session
 learning_session = workspace.process_learning_session(complex_query)
 
-# The session will automatically:
-# 1. Break down the query into focused learning topics
-# 2. Prioritize technical understanding
-# 3. Note business considerations for later
-# 4. Track your learning progress
+# Print the structured learning path
+print("\nLearning Path:")
+for topic in learning_session["learning_path"]:
+    print(f"\nTopic: {topic['topic']}")
+    if "prerequisites" in topic:
+        print("Prerequisites:", topic["prerequisites"])
+    if "learning_steps" in topic:
+        print("Steps:", topic["learning_steps"])
 
-# You can then explore specific aspects as needed
-print("Core Learning Topics:", learning_session["core_topics"])
-print("Learning Path:", learning_session["learning_path"])
-print("Future Considerations:", learning_session["future_considerations"])
+# Track progress
+progress = workspace.track_learning_progress(
+    topics=["web_development_basics", "system_design"],
+    metrics={"comprehension": {"web_development": 0.7}},
+    user_profile={"experience_level": "intermediate"}
+)
+
+print("\nProgress Tracking:")
+for topic, mastery in progress["topic_mastery"].items():
+    print(f"\n{topic}:")
+    print("Strengths:", mastery["strengths"])
+    print("Gaps:", mastery["gaps"])

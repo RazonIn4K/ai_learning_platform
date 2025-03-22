@@ -1,0 +1,11 @@
+{
+  "debug": true,
+  "logging": {
+    "level": "DEBUG",
+    "format": "detailed"
+  },
+  "storage": {
+    "type": "file",
+    "path": "data/dev"
+  }
+}

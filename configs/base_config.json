@@ -1,0 +1,17 @@
+{
+  "model": {
+    "provider": "anthropic",
+    "model_name": "claude-3-opus-20240229",
+    "temperature": 0.3,
+    "max_tokens": 4000
+  },
+  "learning": {
+    "mastery_threshold": 0.8,
+    "session_duration": 3600,
+    "topics_per_session": 3
+  },
+  "storage": {
+    "type": "file",
+    "path": "data"
+  }
+}
