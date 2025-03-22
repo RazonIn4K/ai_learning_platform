@@ -4,13 +4,17 @@
     "domain_expert": "claude-3-7-sonnet-20250219",
     "learning_coordinator": "o3-mini"
   },
-  "domains": ["python", "cybersecurity", "machine_learning"],
+  "domains": ["python", "cybersecurity"],
   "default_user_profile": {
     "topics_learned": [],
     "interests": [],
     "learning_style": "self_paced",
     "complexity_preference": "beginner"
-  }
+  },
+  "enable_research": true,
+  "learning_style": "balanced",
+  "model_type": "standard",
+  "tracking_level": "basic"
 }
 
 {

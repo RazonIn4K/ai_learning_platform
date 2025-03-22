@@ -6,37 +6,32 @@ import re
 import os
 from pathlib import Path
 import logging
+from datetime import timedelta
+from dataclasses import dataclass, field
 
 # Configure logging
 logger = logging.getLogger(__name__)
 
-
+@dataclass
 class Topic:
-    """Class representing a topic in the hierarchy."""
-    
-    def __init__(
-        self,
-        id: str,
-        title: str,
-        description: Optional[str] = None,
-        parent: Optional['Topic'] = None
-    ):
-        """
-        Initialize a topic.
-        
-        Args:
-            id: Topic ID (e.g., "1.2.3")
-            title: Topic title
-            description: Optional topic description
-            parent: Optional parent topic
-        """
-        self.id = id
-        self.title = title
-        self.description = description
-        self.parent = parent
+    """Represents a learning topic."""
+    id: str
+    title: str
+    description: Optional[str] = None
+    parent: Optional['Topic'] = None
+    complexity: str = "intermediate"
+    estimated_duration: Optional[timedelta] = timedelta(hours=2)
+    learning_outcomes: Optional[List[str]] = None
+    practical_applications: Optional[List[str]] = None
+    resources: Optional[List[Dict[str, str]]] = None
+    practice_items: Optional[List[Dict[str, Any]]] = None
+    tags: Optional[List[str]] = None
+    related_topics: Optional[List[str]] = None
+    prerequisites: Optional[List[str]] = field(default_factory=list)
+
+    def __post_init__(self):
         self.subtopics = []
-        self.prerequisites = []
-    
+
     def add_subtopic(self, subtopic: 'Topic') -> None:
         """
         Add a subtopic to this topic.
@@ -128,6 +123,16 @@ class Topic:
     
     def __repr__(self) -> str:
         return f"Topic(id='{self.id}', title='{self.title}')"
+
+    @property
+    def name(self) -> str:
+        """Get the name of the topic."""
+        return self.title
+
+    @property
+    def leads_to(self) -> List[str]:
+        """Get the topics that this topic leads to."""
+        return self.related_topics or []
 
 
 class TopicHierarchy:

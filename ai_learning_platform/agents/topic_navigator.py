@@ -10,6 +10,8 @@ from .base_agent import BaseLearningAgent
 from ..models.model_registry import ModelRegistry
 from ..utils.topic_hierarchy import TopicHierarchy
 from ..utils.knowledge_mapper import KnowledgeMapper, KnowledgeNode
+from ..utils.decorators import handle_agent_errors, validate_input
+from ..utils.base_config import BaseConfig
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +50,7 @@ class TopicNavigatorAgent(BaseLearningAgent):
         self.topic_hierarchy = topic_hierarchy
         self.knowledge_mapper = knowledge_mapper
         self.user_profile = user_profile
+        self.learning_graph = self._build_learning_graph()
 
     def _analyze_query(self, query: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """Specialized function for analyzing learning queries."""
@@ -72,7 +75,7 @@ class TopicNavigatorAgent(BaseLearningAgent):
         """Create personalized learning path."""
         path = []
         for topic in topics:
-            prerequisites = self._check_prerequisites(topic)
+            prerequisites = self._get_prerequisites(topic)
             
             missing_prereqs = [
                 p for p in prerequisites 
@@ -940,3 +943,99 @@ class TopicNavigatorAgent(BaseLearningAgent):
             return base_time * 1.2
         else:
             return base_time
+
+    def _get_prerequisites(self, topic_id: str) -> List[str]:
+        """
+        Get list of prerequisites for a topic.
+        
+        Args:
+            topic_id: Topic ID to get prerequisites for
+            
+        Returns:
+            List of prerequisite topic IDs
+        """
+        topic = self.topic_hierarchy.get_topic(topic_id)
+        if not topic:
+            return []
+        
+        return topic.prerequisites
+
+    def _check_prerequisite_mastery(self, prereq_id: str, knowledge_state: Dict[str, Any]) -> bool:
+        """
+        Check if a prerequisite topic has been mastered.
+        
+        Args:
+            prereq_id: Prerequisite topic ID
+            knowledge_state: User's current knowledge state
+            
+        Returns:
+            True if prerequisite is considered mastered
+        """
+        if prereq_id in knowledge_state:
+            mastery_level = knowledge_state.get(prereq_id, 0)
+            return mastery_level >= 0.7  # Threshold for mastery
+        return False
+
+    def _get_subtopics(self, topic_id: str) -> List[str]:
+        """
+        Get the subtopics of a given topic.
+        
+        Args:
+            topic_id: Topic ID to get subtopics for
+            
+        Returns:
+            List of subtopic IDs
+        """
+        topic = self.topic_hierarchy.get_topic(topic_id)
+        if not topic:
+            return []
+        return [subtopic.id for subtopic in topic.get_subtopics()]
+
+    def _estimate_topic_time(self, topic_id: str) -> timedelta:
+        """
+        Estimate the time required to learn a topic.
+        
+        Args:
+            topic_id: Topic ID to estimate time for
+            
+        Returns:
+            Estimated learning time as a timedelta
+        """
+        topic = self.topic_hierarchy.get_topic(topic_id)
+        if not topic:
+            return timedelta(hours=2)  # Default estimate of 2 hours
+        return topic.estimated_duration or timedelta(hours=2)
+
+class TopicNavigator:
+    def __init__(self, config: BaseConfig):
+        super().__init__(config)
+        self.topic_hierarchy = TopicHierarchy()
+        self.knowledge_mapper = KnowledgeMapper()
+
+    @agent_method()
+    def analyze_query(self, query: str, context: Optional[Dict] = None) -> Dict:
+        """Analyzes learning query and suggests path."""
+        topics = self.topic_hierarchy.extract_topics(query)
+        knowledge_state = self.knowledge_mapper.get_knowledge_state()
+        
+        return {
+            "topics": topics,
+            "path": self._create_learning_path(topics, knowledge_state),
+            "prerequisites": self._get_prerequisites(topics)
+        }
+
+    def _create_learning_path(
+        self,
+        topics: List[str],
+        knowledge_state: Dict
+    ) -> List[Dict]:
+        """Creates optimized learning path."""
+        return self.knowledge_mapper.create_path(
+            topics,
+            knowledge_state,
+            self.config.confidence_threshold
+        )
+
+    def _get_prerequisites(self, topics: List[str]) -> List[str]:
+        """Gets prerequisites for topics."""
+        return self.topic_hierarchy.get_prerequisites(topics)

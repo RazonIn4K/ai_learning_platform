@@ -13,6 +13,7 @@ class LearningProfileManager:
         """
         profile = self.get_profile(user_id)
         if not profile:
+            print(f"Error: Profile '{user_id}' not found.")
             return []
         
         strengths = []
@@ -62,6 +63,7 @@ class LearningProfileManager:
         """
         profile = self.get_profile(user_id)
         if not profile:
+            print(f"Error: Profile '{user_id}' not found.")
             return []
         
         gaps = []
@@ -90,11 +92,25 @@ class LearningProfileManager:
         threshold = 0.4
         
         # Check if any metrics indicate a gap
-        if metrics.get("mastery_level", 1) <= threshold:
+        if metrics.get("mastery_level", 0) <= threshold:
             return True
-        if metrics.get("completion_score", 1) <= threshold:
+        if metrics.get("completion_score", 0) <= threshold:
             return True
-        if metrics.get("assessment_score", 1) <= threshold:
+        if metrics.get("assessment_score", 0) <= threshold:
             return True
         
         return False 
+
+    def get_user_strengths(self, user_id: str) -> List[str]:
+        """Get user's learning strengths."""
+        profile = self.get_profile(user_id)
+        if profile:
+            return profile.get("strengths", [])
+        return []
+
+    def get_learning_gaps(self, user_id: str) -> List[str]:
+        """Get user's learning gaps."""
+        profile = self.get_profile(user_id)
+        if profile:
+            return profile.get("gaps", [])
+        return [] 
