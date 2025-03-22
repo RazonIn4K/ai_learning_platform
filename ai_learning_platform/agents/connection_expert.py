@@ -36,20 +36,69 @@ class ConnectionExpert(BaseLearningAgent):
     
     def __init__(
         self,
-        knowledge_mapper,
-        topic_hierarchy,
-        knowledge_explorer: Optional[KnowledgeExplorer] = None,
-        model_name: str = "anthropic/claude-3-sonnet",
+        model_name: str,
         model_params: Optional[Dict[str, Any]] = None,
-        user_profile: Optional[Dict[str, Any]] = None
+        knowledge_mapper: Optional[Any] = None,
+        topic_hierarchy: Optional[Any] = None,
+        knowledge_explorer: Optional[Any] = None,
+        **kwargs
     ):
-        super().__init__(model_name, model_params)
+        """Initialize the connection expert."""
+        system_message = """
+        You are a Connection Expert, specialized in identifying and explaining relationships between different domains of knowledge.
+        Your role is to:
+        1. Identify meaningful connections between topics across different domains
+        2. Explain how concepts from one domain apply to another
+        3. Help create bridges between different areas of learning
+        4. Suggest ways to apply knowledge from one domain to another
+        
+        Always strive to find practical, meaningful connections that enhance learning and understanding.
+        """
+        
+        super().__init__(
+            model_name=model_name,
+            model_params=model_params,
+            system_message=system_message,
+            **kwargs
+        )
+        
         self.knowledge_mapper = knowledge_mapper
         self.topic_hierarchy = topic_hierarchy
         self.knowledge_explorer = knowledge_explorer
-        self.user_profile = user_profile or {}
 
         logger.info("Connection Expert initialized")
+
+    def process_message(self, message: str) -> str:
+        """Process a message using the model.
+        
+        Args:
+            message: The message to process
+            
+        Returns:
+            The model's response
+        """
+        try:
+            # Get the model from the registry
+            model = ModelRegistry.get_model(self.model_name)
+            
+            # Prepare the context with system message
+            context = {
+                "system_message": self.system_message,
+                "model_params": self.model_params or {}
+            }
+            
+            # Process the message
+            response = model.process_message(message, context)
+            
+            # Log the interaction
+            logger.debug(f"Processed message: {message[:100]}...")
+            logger.debug(f"Response: {response[:100]}...")
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error processing message: {str(e)}")
+            raise ConnectionError(f"Failed to process message: {str(e)}")
 
     def interpret_learning_question(self, question: str) -> Dict[str, any]:
         """
@@ -711,3 +760,176 @@ class ConnectionExpert(BaseLearningAgent):
             })
         
         return sorted(bridges, key=lambda x: x["bridge_strength"], reverse=True)
+
+    def find_domain_bridges(
+        self,
+        source_domain: str,
+        target_domain: str,
+        context: str
+    ) -> List[Dict[str, Any]]:
+        """Find conceptual bridges between two domains."""
+        try:
+            # Create a prompt for finding connections
+            prompt = f"""
+            Identify meaningful connections between {source_domain} and {target_domain} in the context of: {context}
+            
+            Consider:
+            1. Shared concepts and principles
+            2. Similar patterns or approaches
+            3. Ways one domain can inform the other
+            4. Practical applications that combine both domains
+            
+            For each connection, provide:
+            - Source topic from {source_domain}
+            - Target topic from {target_domain}
+            - Type of connection (concept, pattern, application)
+            - Relevance score (0.0 to 1.0)
+            - Brief explanation of the relationship
+            """
+            
+            response = self.process_message(prompt)
+            
+            # Parse and structure the connections
+            bridges = self._parse_connections(response)
+            
+            # Validate and filter connections
+            valid_bridges = [
+                bridge for bridge in bridges
+                if self._validate_connection(bridge)
+            ]
+            
+            return valid_bridges
+            
+        except Exception as e:
+            logger.error(f"Error finding domain bridges: {str(e)}", exc_info=True)
+            return []
+    
+    def analyze_path_connections(
+        self,
+        learning_path: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Analyze connections between topics in a learning path."""
+        try:
+            connections = []
+            
+            # Analyze sequential connections
+            for i in range(len(learning_path) - 1):
+                current = learning_path[i]
+                next_topic = learning_path[i + 1]
+                
+                connection = self._analyze_topic_connection(
+                    current.get("topic", ""),
+                    next_topic.get("topic", "")
+                )
+                
+                if connection:
+                    connections.append(connection)
+            
+            # Look for non-sequential connections
+            for i in range(len(learning_path)):
+                for j in range(i + 2, len(learning_path)):
+                    current = learning_path[i]
+                    later_topic = learning_path[j]
+                    
+                    connection = self._analyze_topic_connection(
+                        current.get("topic", ""),
+                        later_topic.get("topic", ""),
+                        connection_type="non_sequential"
+                    )
+                    
+                    if connection and connection["strength"] > 0.7:
+                        connections.append(connection)
+            
+            return connections
+            
+        except Exception as e:
+            logger.error(f"Error analyzing path connections: {str(e)}", exc_info=True)
+            return []
+    
+    def _analyze_topic_connection(
+        self,
+        source_topic: str,
+        target_topic: str,
+        connection_type: str = "sequential"
+    ) -> Optional[Dict[str, Any]]:
+        """Analyze the connection between two topics."""
+        try:
+            # Create analysis prompt
+            prompt = f"""
+            Analyze the connection between:
+            Source Topic: {source_topic}
+            Target Topic: {target_topic}
+            Connection Type: {connection_type}
+            
+            Determine:
+            1. Connection strength (0.0 to 1.0)
+            2. Nature of the relationship
+            3. Key concepts that bridge the topics
+            4. Whether this is a prerequisite relationship
+            """
+            
+            response = self.process_message(prompt)
+            
+            # Extract connection details
+            connection = self._parse_connection_analysis(response)
+            
+            if connection and connection["strength"] > 0.5:
+                return {
+                    "source_topic": source_topic,
+                    "target_topic": target_topic,
+                    "type": connection_type,
+                    "strength": connection["strength"],
+                    "relationship": connection["relationship"],
+                    "key_concepts": connection["key_concepts"],
+                    "is_prerequisite": connection["is_prerequisite"]
+                }
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error analyzing topic connection: {str(e)}", exc_info=True)
+            return None
+    
+    def _parse_connections(self, response: str) -> List[Dict[str, Any]]:
+        """Parse connection information from agent response."""
+        # Implementation would parse the text response into structured data
+        # This is a placeholder implementation
+        return [
+            {
+                "source_topic": "example_source",
+                "target_topic": "example_target",
+                "connection_type": "concept",
+                "relevance_score": 0.8
+            }
+        ]
+    
+    def _validate_connection(self, connection: Dict[str, Any]) -> bool:
+        """Validate a proposed connection."""
+        required_fields = [
+            "source_topic",
+            "target_topic",
+            "connection_type",
+            "relevance_score"
+        ]
+        
+        # Check required fields
+        if not all(field in connection for field in required_fields):
+            return False
+        
+        # Validate relevance score
+        score = connection.get("relevance_score", 0)
+        if not isinstance(score, (int, float)) or score < 0 or score > 1:
+            return False
+        
+        return True
+    
+    def _parse_connection_analysis(self, response: str) -> Optional[Dict[str, Any]]:
+        """Parse connection analysis from agent response."""
+        # Implementation would parse the text response into structured data
+        # This is a placeholder implementation
+        return {
+            "strength": 0.8,
+            "relationship": "builds_upon",
+            "key_concepts": ["example_concept"],
+            "is_prerequisite": True
+        }

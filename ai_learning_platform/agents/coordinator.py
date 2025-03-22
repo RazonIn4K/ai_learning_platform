@@ -115,22 +115,9 @@ class LearningCoordinatorAgent(BaseLearningAgent):
             "is_navigation": boolean,
             "complexity_level": "beginner|intermediate|advanced",
             "learning_style": "conceptual|practical|visual|balanced",
-            "execution_plan": {{
-                "primary_agent": "agent_name",
-                "supporting_agents": ["agent1", "agent2"],
-                "execution_order": ["step1", "step2"],
-                "required_context": ["context1", "context2"]
-            }},
-            "knowledge_requirements": {{
-                "prerequisites": ["prereq1", "prereq2"],
-                "core_concepts": ["concept1", "concept2"]
-            }},
-            "confidence_metrics": {{
-                "domain_clarity": 0.0-1.0,
-                "intent_clarity": 0.0-1.0,
-                "context_sufficiency": 0.0-1.0,
-                "topic_familiarity": 0.0-1.0
-            }}
+            "required_agents": ["agent1", "agent2"],
+            "execution_order": ["step1", "step2"],
+            "confidence_score": 0.0-1.0
         }}"""
         
         result = self.process_message(prompt)
@@ -142,11 +129,12 @@ class LearningCoordinatorAgent(BaseLearningAgent):
                 is_navigation=parsed["is_navigation"],
                 complexity_level=parsed["complexity_level"],
                 learning_style=parsed["learning_style"],
-                required_agents=self._determine_required_agents(parsed),
-                confidence_score=self._calculate_confidence(parsed["confidence_metrics"])
+                required_agents=parsed.get("required_agents", self._determine_required_agents(parsed)),
+                confidence_score=parsed.get("confidence_score", 0.7),
+                requires_coordination=len(parsed.get("required_agents", [])) > 1
             )
-        except json.JSONDecodeError as e:
-            logger.error("Failed to parse analysis result: %s", str(e))
+        except json.JSONDecodeError:
+            logger.error("Failed to parse analysis result")
             raise CoordinationError("Failed to analyze query")
 
     def _handle_single_agent_query(
@@ -183,16 +171,15 @@ class LearningCoordinatorAgent(BaseLearningAgent):
             return self._format_response(response, agent_name)
         except Exception as e:
             logger.error(f"Error calling specialized function '{function_name}' on {agent_name}: {str(e)}")
-            # Fallback to process_query if specialized function fails
-            if function_name != "process_query":
-                logger.info(f"Falling back to process_query for agent '{agent_name}'")
-                response = agent.specialized_function(
-                    "process_query",
-                    query=query,
-                    context=self._enrich_context(context, analysis)
-                )
-                return self._format_response(response, agent_name)
-            raise
+            # Use error handling
+            error_response = self._handle_agent_error(
+                agent_name,
+                function_name,
+                e,
+                query,
+                self._enrich_context(context, analysis)
+            )
+            return self._format_response(error_response, f"{agent_name}_fallback")
             
     def _format_response(self, response: Dict[str, Any], agent_name: str) -> Dict[str, Any]:
         """Format the response from a single agent."""
@@ -645,3 +632,198 @@ class LearningCoordinatorAgent(BaseLearningAgent):
                             learning_path.append(path_item)
         
         return learning_path
+
+    def _handle_agent_error(
+        self,
+        agent_name: str,
+        function_name: str,
+        error: Exception,
+        query: str,
+        context: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Handle errors from specialized agents gracefully."""
+        logger.error(
+            f"Error in {agent_name}.{function_name}: {str(error)}",
+            exc_info=True
+        )
+        
+        error_details = {
+            "agent": agent_name,
+            "function": function_name,
+            "error_type": type(error).__name__,
+            "error_message": str(error),
+            "query": query,
+            "context_keys": list(context.keys())
+        }
+        
+        # Try to get a fallback response
+        try:
+            if agent_name == "topic_navigator" and "connection_expert" in self.specialized_agents:
+                # Try using connection expert as fallback
+                fallback = self.specialized_agents["connection_expert"].specialized_function(
+                    "analyze_topic_connections",
+                    query=query,
+                    context=context
+                )
+                return {
+                    **fallback,
+                    "error": str(error),
+                    "error_details": error_details,
+                    "is_fallback": True,
+                    "fallback_response": "Used connection expert as fallback",
+                    "success": False
+                }
+            elif "domain" in agent_name and "topic_navigator" in self.specialized_agents:
+                # For domain expert errors, fall back to topic navigator
+                fallback = self.specialized_agents["topic_navigator"].specialized_function(
+                    "analyze_topic",
+                    query=query,
+                    context=context
+                )
+                return {
+                    **fallback,
+                    "error": str(error),
+                    "error_details": error_details,
+                    "is_fallback": True,
+                    "fallback_response": "Used topic navigator as fallback",
+                    "success": False
+                }
+            else:
+                # Last resort: generate a direct response
+                return {
+                    "content": self.process_message(
+                        f"The specialized agent encountered an error. Please provide a helpful "
+                        f"response to this query: {query}"
+                    ),
+                    "error": str(error),
+                    "error_details": error_details,
+                    "is_fallback": True,
+                    "fallback_response": "Generated direct response as fallback",
+                    "success": False
+                }
+        except Exception as fallback_error:
+            # If even the fallback fails, return a simple error message
+            error_details["fallback_error"] = str(fallback_error)
+            return {
+                "content": f"I apologize, but I encountered an error processing your request. "
+                          f"Please try rephrasing or asking a different question.",
+                "error": str(error),
+                "error_details": error_details,
+                "fallback_error": str(fallback_error),
+                "is_fallback": True,
+                "fallback_response": "All fallback attempts failed",
+                "success": False
+            }
+
+    def delegate_specialized_function(
+        self,
+        agent_name: str,
+        function_name: str,
+        **kwargs
+    ) -> Dict[str, Any]:
+        """Delegate a specialized function to a specific agent.
+        
+        Args:
+            agent_name: Name of the agent to delegate to
+            function_name: Name of the function to call
+            **kwargs: Additional arguments for the function
+            
+        Returns:
+            Response from the agent
+        """
+        agent = self.specialized_agents.get(agent_name)
+        if not agent:
+            raise CoordinationError(f"Agent {agent_name} not found")
+            
+        try:
+            return agent.specialized_function(function_name, **kwargs)
+        except Exception as e:
+            logger.error(f"Error delegating {function_name} to {agent_name}: {str(e)}")
+            return self._handle_agent_error(agent_name, function_name, e, "", kwargs)
+
+    def process_learning_session(
+        self,
+        query: str,
+        context: Optional[Dict[str, Any]] = None,
+        session_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Process a comprehensive learning session.
+        
+        Args:
+            query: User's learning query
+            context: Additional context for the session
+            session_id: Unique identifier for the session
+            
+        Returns:
+            Comprehensive learning response
+        """
+        try:
+            # Analyze the query
+            analysis = self._analyze_query(query)
+            
+            # Enrich context with session info
+            enriched_context = self._enrich_context(context, analysis)
+            if session_id:
+                enriched_context["session_id"] = session_id
+                
+            # Process based on coordination needs
+            if not analysis.requires_coordination:
+                response = self._handle_single_agent_query(query, analysis, enriched_context)
+            else:
+                response = self._handle_coordinated_query(query, analysis, enriched_context)
+                
+            # Add session metadata
+            response["session_id"] = session_id
+            response["timestamp"] = datetime.now().isoformat()
+            response["query_analysis"] = {
+                "domains": analysis.domains,
+                "complexity_level": analysis.complexity_level,
+                "learning_style": analysis.learning_style
+            }
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error processing learning session: {str(e)}", exc_info=True)
+            raise CoordinationError(f"Learning session failed: {str(e)}")
+
+    def process_message(self, message: str) -> str:
+        """Process a message using the model.
+        
+        Args:
+            message: The message to process
+            
+        Returns:
+            The model's response
+        """
+        try:
+            # Get the model from the registry
+            model = ModelRegistry.get_model(self.model_name)
+            
+            # Prepare the context with system message
+            context = {
+                "system_message": """
+                You are a Learning Coordinator, responsible for analyzing learning queries and coordinating multiple specialized agents.
+                Your role is to:
+                1. Analyze queries to determine required domains and expertise
+                2. Plan the execution strategy for complex learning requests
+                3. Coordinate multiple agents for comprehensive responses
+                4. Ensure learning goals are met effectively
+                
+                Always provide structured, actionable analysis that can guide the learning process.
+                """,
+                "model_params": self.model_params or {}
+            }
+            
+            # Process the message
+            response = model.process_message(message, context)
+            
+            # Log the interaction
+            logger.debug(f"Processed message: {message[:100]}...")
+            logger.debug(f"Response: {response[:100]}...")
+            
+            return response
+            
+        except Exception as e:
+            logger.error(f"Error processing message: {str(e)}")
+            raise CoordinationError(f"Failed to process message: {str(e)}")

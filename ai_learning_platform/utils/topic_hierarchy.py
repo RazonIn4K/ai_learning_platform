@@ -409,6 +409,31 @@ class TopicHierarchy:
         
         return errors
 
+    def extract_topics(self, query: str) -> List[str]:
+        """
+        Extract topic IDs from a query string.
+        
+        Args:
+            query: Query string to analyze
+            
+        Returns:
+            List of topic IDs found in the query
+        """
+        # First try exact matches
+        exact_matches = []
+        query_lower = query.lower()
+        
+        for topic in self.topics.values():
+            if topic.title.lower() in query_lower:
+                exact_matches.append(topic.id)
+        
+        if exact_matches:
+            return exact_matches
+        
+        # If no exact matches, try fuzzy search
+        search_results = self.search_topics(query)
+        return [topic.id for topic in search_results]
+
 
 # Integrated topic hierarchy for Computer Science and Cybersecurity
 INTEGRATED_TOPIC_HIERARCHY = {

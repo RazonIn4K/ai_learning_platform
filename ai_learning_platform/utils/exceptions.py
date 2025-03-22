@@ -15,3 +15,7 @@ class WorkspaceError(Exception):
 class ModelError(Exception):
     """Raised when there is an error in model operation."""
     pass
+
+class ConfigurationError(Exception):
+    """Raised when there is an error in configuration."""
+    pass

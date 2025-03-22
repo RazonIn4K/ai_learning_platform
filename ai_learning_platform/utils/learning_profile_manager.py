@@ -210,3 +210,80 @@ class LearningProfileManager:
             and practice_count >= required_practice
             and assessment_score >= required_score
         )
+
+    def record_session_event(
+        self,
+        profile_name: str,
+        event_type: str,
+        event_data: Dict[str, Any]
+    ) -> None:
+        """Record a learning session event.
+        
+        Args:
+            profile_name: Name of the profile to record event for
+            event_type: Type of event (e.g., 'completion', 'assessment', 'practice')
+            event_data: Data associated with the event
+        """
+        profile = self.get_profile(profile_name)
+        if not profile:
+            print(f"Error: Profile '{profile_name}' not found.")
+            return
+            
+        if "session_history" not in profile:
+            profile["session_history"] = []
+            
+        event = {
+            "timestamp": datetime.now().isoformat(),
+            "type": event_type,
+            "data": event_data
+        }
+        
+        profile["session_history"].append(event)
+        self.update_profile(profile_name, profile)
+        
+    def get_learning_history(
+        self,
+        profile_name: str,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        event_types: Optional[List[str]] = None
+    ) -> List[Dict[str, Any]]:
+        """Get learning history for a profile.
+        
+        Args:
+            profile_name: Name of the profile to get history for
+            start_date: Optional ISO format date to filter from
+            end_date: Optional ISO format date to filter to
+            event_types: Optional list of event types to filter by
+            
+        Returns:
+            List of learning history events
+        """
+        profile = self.get_profile(profile_name)
+        if not profile:
+            print(f"Error: Profile '{profile_name}' not found.")
+            return []
+            
+        history = profile.get("session_history", [])
+        
+        # Apply date filters if provided
+        if start_date:
+            history = [
+                event for event in history
+                if event["timestamp"] >= start_date
+            ]
+            
+        if end_date:
+            history = [
+                event for event in history
+                if event["timestamp"] <= end_date
+            ]
+            
+        # Apply event type filter if provided
+        if event_types:
+            history = [
+                event for event in history
+                if event["type"] in event_types
+            ]
+            
+        return history

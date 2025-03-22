@@ -255,3 +255,107 @@ class KnowledgeExplorer:
                 )
         except Exception as e:
             logger.error(f"Error updating knowledge graph: {str(e)}")
+
+    def get_domain_context(self, domain: str) -> Dict[str, Any]:
+        """Get context information for a domain.
+        
+        Args:
+            domain: Domain to get context for
+            
+        Returns:
+            Dictionary containing domain context
+        """
+        try:
+            # Get core concepts for the domain
+            core_concepts = self._get_domain_core_concepts(domain)
+            
+            # Get key topics and their relationships
+            key_topics = self._get_domain_key_topics(domain)
+            
+            # Get domain prerequisites
+            prerequisites = self._get_domain_prerequisites(domain)
+            
+            # Get typical learning paths
+            learning_paths = self._get_domain_learning_paths(domain)
+            
+            return {
+                "domain": domain,
+                "core_concepts": core_concepts,
+                "key_topics": key_topics,
+                "prerequisites": prerequisites,
+                "learning_paths": learning_paths,
+                "difficulty_level": self._estimate_domain_difficulty(domain),
+                "estimated_time": self._estimate_domain_learning_time(domain)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error getting domain context for {domain}: {str(e)}")
+            return {
+                "domain": domain,
+                "error": f"Failed to get domain context: {str(e)}",
+                "core_concepts": [],
+                "key_topics": [],
+                "prerequisites": [],
+                "learning_paths": []
+            }
+            
+    def _get_domain_core_concepts(self, domain: str) -> List[str]:
+        """Get core concepts for a domain."""
+        # This would be implemented based on your domain knowledge base
+        return [
+            f"Core concept 1 for {domain}",
+            f"Core concept 2 for {domain}"
+        ]
+        
+    def _get_domain_key_topics(self, domain: str) -> List[Dict[str, Any]]:
+        """Get key topics for a domain."""
+        return [
+            {
+                "topic": f"Key topic 1 for {domain}",
+                "importance": "high",
+                "related_concepts": self.get_related_concepts(f"Key topic 1 for {domain}")
+            },
+            {
+                "topic": f"Key topic 2 for {domain}",
+                "importance": "medium",
+                "related_concepts": self.get_related_concepts(f"Key topic 2 for {domain}")
+            }
+        ]
+        
+    def _get_domain_prerequisites(self, domain: str) -> List[str]:
+        """Get prerequisites for a domain."""
+        # This would be implemented based on your domain prerequisites database
+        return [
+            f"Prerequisite 1 for {domain}",
+            f"Prerequisite 2 for {domain}"
+        ]
+        
+    def _get_domain_learning_paths(self, domain: str) -> List[Dict[str, Any]]:
+        """Get typical learning paths for a domain."""
+        return [
+            {
+                "name": "Beginner Path",
+                "steps": self._get_domain_prerequisites(domain),
+                "difficulty": "beginner"
+            },
+            {
+                "name": "Advanced Path",
+                "steps": self._get_domain_prerequisites(domain) + [domain],
+                "difficulty": "advanced"
+            }
+        ]
+        
+    def _estimate_domain_difficulty(self, domain: str) -> str:
+        """Estimate the difficulty level of a domain."""
+        prerequisites = len(self._get_domain_prerequisites(domain))
+        if prerequisites > 5:
+            return "advanced"
+        elif prerequisites > 2:
+            return "intermediate"
+        return "beginner"
+        
+    def _estimate_domain_learning_time(self, domain: str) -> str:
+        """Estimate the time needed to learn a domain."""
+        prerequisites = len(self._get_domain_prerequisites(domain))
+        hours = prerequisites * 5 + 10
+        return f"{hours} hours"

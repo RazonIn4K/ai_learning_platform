@@ -335,6 +335,109 @@ class TopicNavigatorAgent(BaseLearningAgent):
             f"{', '.join(topic.leads_to)} in the future."
         )
 
+    def analyze_learning_path(self, query: str, context: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Analyze and create a learning path based on a query.
+        
+        Args:
+            query: User's learning query
+            context: Additional context including user profile and analysis
+            
+        Returns:
+            List of learning path steps with metadata
+        """
+        # Extract topics from query
+        topics = self.topic_hierarchy.extract_topics(query)
+        
+        # Get user's current knowledge state
+        knowledge_state = self.knowledge_mapper.get_knowledge_state(
+            self.user_profile["user_id"]
+        )
+        
+        # Create initial learning path
+        path = self._create_learning_path(topics, knowledge_state)
+        
+        # Enrich path with additional metadata
+        enriched_path = []
+        for step in path:
+            topic_analysis = self.analyze_topic(step["topic"])
+            enriched_step = {
+                **step,
+                "prerequisites": topic_analysis.prerequisites,
+                "learning_outcomes": topic_analysis.learning_outcomes,
+                "practical_applications": topic_analysis.practical_applications[:2],  # Limit to top 2
+                "complexity": topic_analysis.complexity_level
+            }
+            enriched_path.append(enriched_step)
+        
+        return enriched_path
+
+    def adapt_learning_path(
+        self,
+        path: List[Dict[str, Any]],
+        user_profile: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """
+        Adapt a learning path based on user's current knowledge and progress.
+        
+        Args:
+            path: Original learning path to adapt
+            user_profile: User's profile with learning history
+            
+        Returns:
+            Adapted learning path
+        """
+        # Get user's mastered topics
+        mastered_topics = {
+            topic["id"]
+            for topic in user_profile.get("topics_learned", [])
+            if topic.get("mastery_level", 0) >= 0.8
+        }
+        
+        # Filter out mastered topics and their prerequisites
+        adapted_path = []
+        for step in path:
+            topic_id = step["topic"]
+            
+            # Skip if topic is already mastered
+            if topic_id in mastered_topics:
+                continue
+                
+            # Get topic details
+            topic = self.topic_hierarchy.get_topic(topic_id)
+            if not topic:
+                continue
+                
+            # Check prerequisites
+            prerequisites = topic.get("prerequisites", [])
+            missing_prereqs = [
+                prereq for prereq in prerequisites
+                if prereq not in mastered_topics
+            ]
+            
+            # Add missing prerequisites first
+            for prereq in missing_prereqs:
+                prereq_topic = self.topic_hierarchy.get_topic(prereq)
+                if not prereq_topic:
+                    continue
+                    
+                adapted_path.append({
+                    "topic": prereq,
+                    "type": "prerequisite",
+                    "estimated_time": prereq_topic.get("estimated_duration", "2 hours"),
+                    "complexity": prereq_topic.get("complexity", "intermediate")
+                })
+            
+            # Add the main topic
+            adapted_path.append({
+                **step,
+                "prerequisites": missing_prereqs,
+                "estimated_time": topic.get("estimated_duration", "2 hours"),
+                "complexity": topic.get("complexity", "intermediate")
+            })
+        
+        return adapted_path
+
     def specialized_function(self, function_type: str, **kwargs) -> Any:
         """Execute specialized navigator functions."""
         function_map = {
@@ -345,13 +448,17 @@ class TopicNavigatorAgent(BaseLearningAgent):
             "estimate_completion_time": lambda topic_id, pace: self._estimate_completion_time(
                 self.topic_hierarchy.get_topic(topic_id),
                 pace
-            )
+            ),
+            "analyze_learning_path": self.analyze_learning_path,
+            "adapt_learning_path": self.adapt_learning_path
         }
         
         if function_type not in function_map:
             raise ValueError(f"Unknown function type: {function_type}")
             
-        return function_map[function_type](**kwargs)
+        function = function_map[function_type]
+        self._validate_function_params(function, kwargs)
+        return function(**kwargs)
 
     def _analyze_prerequisites(self, topic: KnowledgeNode) -> List[str]:
         """Analyze prerequisites with confidence scores."""
@@ -670,7 +777,9 @@ class TopicNavigatorAgent(BaseLearningAgent):
             "create_learning_path",
             "suggest_next_topics",
             "analyze_prerequisites",
-            "estimate_completion_time"
+            "estimate_completion_time",
+            "update_user_profile_with_learned_topic",
+            "adapt_learning_path"
         ]
 
     def _analyze_topic(
@@ -731,3 +840,102 @@ class TopicNavigatorAgent(BaseLearningAgent):
             key=lambda x: (x["relevance_score"], -x["difficulty_increase"]),
             reverse=True
         )[:5]
+
+    def _adapt_learning_path(
+        self,
+        path: List[Dict[str, Any]],
+        user_profile: Dict[str, Any]
+    ) -> List[Dict[str, Any]]:
+        """Adapt a learning path based on user profile and progress."""
+        adapted_path = []
+        
+        # Get user's mastered topics
+        mastered_topics = []
+        for topic_data in user_profile.get("topics_learned", []):
+            if isinstance(topic_data, dict):
+                if topic_data.get("mastery_level", 0) > 0.8:
+                    mastered_topics.append(topic_data["id"])
+            else:
+                # Handle case where topics_learned is just a list of IDs
+                mastered_topics.append(topic_data)
+        
+        # Filter out already mastered topics
+        for step in path:
+            topic_id = step.get("topic")
+            if not topic_id:
+                # Skip invalid steps
+                continue
+                
+            if topic_id in mastered_topics:
+                # Skip mastered topics but note them
+                adapted_path.append({
+                    **step,
+                    "status": "mastered",
+                    "action": "review"
+                })
+            else:
+                # Determine difficulty based on prerequisites
+                difficulty = self._calculate_topic_difficulty(
+                    topic_id,
+                    mastered_topics
+                )
+                
+                adapted_path.append({
+                    **step,
+                    "status": "new",
+                    "difficulty": difficulty,
+                    "estimated_time": self._estimate_learning_time(
+                        self.topic_hierarchy.get_topic(topic_id),
+                        difficulty
+                    )
+                })
+        
+        return adapted_path
+
+    def _calculate_topic_difficulty(
+        self,
+        topic_id: str,
+        mastered_topics: List[str]
+    ) -> str:
+        """Calculate difficulty of a topic based on prerequisites mastery."""
+        topic = self.topic_hierarchy.get_topic(topic_id)
+        if not topic:
+            return "unknown"
+            
+        prerequisites = topic.prerequisites
+        if not prerequisites:
+            return "beginner"
+            
+        # Calculate percentage of mastered prerequisites
+        mastered_count = sum(1 for p in prerequisites if p in mastered_topics)
+        if not prerequisites:
+            mastery_percentage = 1.0
+        else:
+            mastery_percentage = mastered_count / len(prerequisites)
+        
+        if mastery_percentage > 0.8:
+            return "beginner"
+        elif mastery_percentage > 0.4:
+            return "intermediate"
+        else:
+            return "advanced"
+
+    def _estimate_learning_time(
+        self,
+        topic: Optional[KnowledgeNode],
+        difficulty: str
+    ) -> timedelta:
+        """Estimate learning time based on topic and difficulty."""
+        if not topic:
+            return timedelta(hours=1)  # Default estimate
+            
+        # Base time from topic metadata
+        base_time = topic.estimated_duration or timedelta(hours=1)
+        
+        # Adjust based on difficulty
+        if difficulty == "advanced":
+            return base_time * 1.5
+        elif difficulty == "intermediate":
+            return base_time * 1.2
+        else:
+            return base_time

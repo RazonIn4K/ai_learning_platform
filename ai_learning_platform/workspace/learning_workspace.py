@@ -6,6 +6,7 @@ import logging
 from datetime import datetime
 import json
 from pathlib import Path
+import uuid
 
 from ..agents import (
     TopicNavigatorAgent,
@@ -19,6 +20,7 @@ from ..models.model_registry import ModelRegistry
 from ..utils.exceptions import WorkspaceError, ConfigurationError
 from ..utils.learning_profile_manager import LearningProfileManager
 from ..utils.knowledge_explorer import KnowledgeExplorer
+from ..utils.logging_config import setup_logging, LearningAnalytics
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +53,10 @@ class LearningWorkspace:
         self.agents = {}
         self.model_clients = {}
         self.knowledge_explorer = KnowledgeExplorer(self.topic_hierarchy)
+        self.session_id = str(uuid.uuid4())
+        
+        # Set up logging and analytics
+        self.analytics = setup_logging()
         
         self._initialize_components()
         logger.info("Learning workspace initialized successfully")
@@ -78,11 +84,52 @@ class LearningWorkspace:
         session_id = self._start_session()
         
         try:
+            start_time = datetime.now()
+            
+            # Log session start
+            self.analytics.log_learning_event(
+                "session_start",
+                self.user_profile["user_id"],
+                {"query": query},
+                self.session_id
+            )
+            
             context = self._prepare_learning_context()
             response = self.agents["learning_coordinator"].process_learning_session(
                 query=query,
                 context=context,
                 session_id=session_id
+            )
+            
+            # If the response includes a learning path, analyze cross-domain connections
+            if "learning_path" in response:
+                connections = self.agents["connection_expert"].analyze_path_connections(
+                    response["learning_path"]
+                )
+                response["connections"] = connections
+                
+                # Log cross-domain connections
+                for conn in connections:
+                    self.analytics.log_cross_domain_connection(
+                        self.user_profile["user_id"],
+                        conn["source_domain"],
+                        conn["target_domain"],
+                        conn["strength"],
+                        self.session_id
+                    )
+            
+            # Calculate session duration
+            duration = (datetime.now() - start_time).total_seconds()
+            
+            # Log session completion
+            self.analytics.log_learning_event(
+                "session_complete",
+                self.user_profile["user_id"],
+                {
+                    "duration": duration,
+                    "response_type": list(response.keys())
+                },
+                self.session_id
             )
             
             self._update_learning_state(response)
@@ -92,6 +139,13 @@ class LearningWorkspace:
         except Exception as e:
             logger.error(f"Error in learning session: {str(e)}", exc_info=True)
             self._end_session(session_id, success=False)
+            self.analytics.log_error(
+                self.user_profile["user_id"],
+                "session_error",
+                str(e),
+                {"query": query},
+                self.session_id
+            )
             raise WorkspaceError(f"Session processing failed: {str(e)}")
 
     def get_learning_recommendations(self) -> Dict[str, Any]:
@@ -189,7 +243,6 @@ class LearningWorkspace:
             self.agents["topic_navigator"] = TopicNavigatorAgent(
                 topic_hierarchy=self.topic_hierarchy,
                 knowledge_mapper=self.knowledge_mapper,
-                knowledge_explorer=self.knowledge_explorer,
                 model_name="anthropic/claude-3-sonnet",
                 model_params={"temperature": 0.7},
                 user_profile=self.user_profile
@@ -205,7 +258,6 @@ class LearningWorkspace:
             for domain in self.config.domains:
                 self.agents[f"{domain}_expert"] = DomainExpertAgent(
                     domain=domain,
-                    topic_hierarchy=self.topic_hierarchy,
                     knowledge_explorer=self.knowledge_explorer,
                     model_name="openai/gpt-4",
                     model_params={"temperature": 0.5}
@@ -443,16 +495,16 @@ class LearningWorkspace:
     def _start_session(self) -> str:
         """Start a new learning session."""
         try:
-            session_id = self._generate_session_id()
-            logger.info(f"Starting learning session: {session_id}")
+            session_id = str(uuid.uuid4())
+            logger.info(f"Starting learning session {session_id}")
             
             # Record session start if user has profile
             if self.user_profile and "user_id" in self.user_profile:
                 self.profile_manager.record_session_event(
                     self.user_profile["user_id"],
-                    session_id,
                     "start",
                     {
+                        "session_id": session_id,
                         "timestamp": datetime.now().isoformat(),
                         "config": self.config.__dict__
                     }
@@ -473,9 +525,9 @@ class LearningWorkspace:
             if self.user_profile and "user_id" in self.user_profile:
                 self.profile_manager.record_session_event(
                     self.user_profile["user_id"],
-                    session_id,
                     "end",
                     {
+                        "session_id": session_id,
                         "timestamp": datetime.now().isoformat(),
                         "status": status,
                         "duration": self._calculate_session_duration(session_id)
@@ -504,3 +556,253 @@ class LearningWorkspace:
             return 0.0
         except Exception:
             return 0.0
+
+    def _track_learning_progress(
+        self,
+        topics: List[str],
+        session_metrics: Dict[str, Any],
+        user_profile: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Track learning progress and update user profile."""
+        if not self.agents.get("topic_navigator"):
+            logger.warning("Topic navigator agent not available for tracking progress")
+            return {"error": "Topic navigator agent not available"}
+        
+        topic_navigator = self.agents["topic_navigator"]
+        
+        # Calculate topic mastery
+        topic_mastery = {}
+        for topic in topics:
+            # Get metrics for this topic
+            metrics = session_metrics.get(topic, {})
+            
+            # Calculate mastery score
+            comprehension = metrics.get("comprehension", 0)
+            application = metrics.get("application", 0)
+            retention = metrics.get("retention", 0)
+            
+            # Default values if not present
+            if comprehension == 0 and application == 0 and retention == 0:
+                comprehension = 0.6  # Default moderately good comprehension
+                application = 0.4  # Default some application
+                retention = 0.5  # Default moderate retention
+            
+            mastery_score = (
+                comprehension * 0.4 +
+                application * 0.4 +
+                retention * 0.2
+            )
+            
+            # Update user profile for this topic
+            update_result = topic_navigator.specialized_function(
+                "update_user_profile_with_learned_topic",
+                topic_id=topic,
+                mastery_level=mastery_score,
+                context={"session_metrics": metrics}
+            )
+            
+            topic_mastery[topic] = {
+                "score": mastery_score,
+                "status": "mastered" if mastery_score > 0.8 else "in_progress",
+                "strengths": self._identify_strengths(metrics),
+                "gaps": self._identify_gaps(metrics),
+                "update_result": update_result
+            }
+        
+        # Calculate overall learning trajectory
+        trajectory = self._calculate_learning_trajectory(
+            user_profile,
+            topic_mastery
+        )
+        
+        return {
+            "topic_mastery": topic_mastery,
+            "updated_profile": user_profile,  # Profile already updated by specialized function
+            "learning_trajectory": trajectory
+        }
+
+    def _identify_strengths(self, metrics: Dict[str, Any]) -> List[str]:
+        """Identify strengths based on metrics."""
+        strengths = []
+        
+        if metrics.get("comprehension", 0) > 0.7:
+            strengths.append("strong_comprehension")
+        if metrics.get("application", 0) > 0.7:
+            strengths.append("practical_application")
+        if metrics.get("retention", 0) > 0.7:
+            strengths.append("good_retention")
+        if metrics.get("speed", 0) > 0.7:
+            strengths.append("quick_learning")
+        
+        return strengths
+
+    def _identify_gaps(self, metrics: Dict[str, Any]) -> List[str]:
+        """Identify learning gaps based on metrics."""
+        gaps = []
+        
+        if metrics.get("comprehension", 0) < 0.5:
+            gaps.append("needs_conceptual_reinforcement")
+        if metrics.get("application", 0) < 0.5:
+            gaps.append("needs_practical_exercises")
+        if metrics.get("retention", 0) < 0.5:
+            gaps.append("needs_spaced_repetition")
+        
+        return gaps
+
+    def _calculate_learning_trajectory(
+        self,
+        user_profile: Dict[str, Any],
+        topic_mastery: Dict[str, Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Calculate learning trajectory based on progress."""
+        # Get historical mastery progression
+        history = user_profile.get("learning_history", [])
+        
+        # Calculate trending topics
+        trending_topics = []
+        for session in history[-5:]:  # Last 5 sessions
+            for topic in session.get("topics_covered", []):
+                trending_topics.append(topic)
+        
+        # Count occurrences
+        from collections import Counter
+        topic_counts = Counter(trending_topics)
+        
+        # Identify trends
+        return {
+            "focus_areas": [topic for topic, count in topic_counts.most_common(3)],
+            "mastery_trend": self._calculate_mastery_trend(history),
+            "recommended_focus": self._recommend_next_focus(
+                user_profile,
+                topic_mastery
+            )
+        }
+
+    def _calculate_mastery_trend(self, history: List[Dict[str, Any]]) -> str:
+        """Calculate trend in mastery levels over time."""
+        if len(history) < 2:
+            return "insufficient_data"
+        
+        # Extract mastery scores from recent sessions
+        recent_scores = []
+        for session in history[-5:]:  # Last 5 sessions
+            session_score = 0
+            metrics = session.get("metrics", {})
+            for topic, topic_metrics in metrics.items():
+                session_score += topic_metrics.get("mastery_level", 0)
+            
+            if session_score > 0:  # Avoid empty sessions
+                recent_scores.append(session_score)
+        
+        if len(recent_scores) < 2:
+            return "insufficient_data"
+        
+        # Calculate trend
+        if recent_scores[-1] > recent_scores[0] * 1.1:
+            return "improving"
+        elif recent_scores[-1] < recent_scores[0] * 0.9:
+            return "declining"
+        else:
+            return "stable"
+
+    def _recommend_next_focus(
+        self,
+        user_profile: Dict[str, Any],
+        topic_mastery: Dict[str, Dict[str, Any]]
+    ) -> List[str]:
+        """Recommend next learning focus based on mastery."""
+        # Get topics with gaps
+        topics_with_gaps = []
+        for topic, data in topic_mastery.items():
+            if data.get("gaps"):
+                topics_with_gaps.append(topic)
+        
+        # If there are gaps, recommend focusing on those
+        if topics_with_gaps:
+            return topics_with_gaps
+        
+        # Otherwise, recommend next logical topics
+        if not self.agents.get("topic_navigator"):
+            return []
+        
+        # Get mastered topics
+        mastered_topics = []
+        for topic_data in user_profile.get("topics_learned", []):
+            if isinstance(topic_data, dict):
+                if topic_data.get("mastery_level", 0) > 0.8:
+                    mastered_topics.append(topic_data["id"])
+        
+        # Get recommendations
+        recommendations = self.agents["topic_navigator"].specialized_function(
+            "suggest_next_topics",
+            current_topics=list(topic_mastery.keys()) + mastered_topics,
+            max_suggestions=3
+        )
+        
+        return [rec.get("topic_id") for rec in recommendations]
+
+    def analyze_learning_effectiveness(
+        self,
+        user_id: str,
+        time_period_days: int = 30
+    ) -> Dict[str, Any]:
+        """Analyze learning effectiveness metrics."""
+        try:
+            # Calculate various metrics
+            metrics = {
+                "completion_rate": self._calculate_completion_rate(user_id, time_period_days),
+                "topic_mastery_growth": self._calculate_mastery_growth(user_id, time_period_days),
+                "engagement_metrics": self._calculate_engagement_metrics(user_id, time_period_days),
+                "recommended_adjustments": self._generate_learning_recommendations(user_id)
+            }
+            
+            # Log analytics
+            self.analytics.log_learning_event(
+                "effectiveness_analysis",
+                user_id,
+                metrics,
+                self.session_id
+            )
+            
+            return metrics
+            
+        except Exception as e:
+            logger.error(f"Error analyzing learning effectiveness: {str(e)}", exc_info=True)
+            self.analytics.log_error(
+                user_id,
+                "analysis_error",
+                str(e),
+                {"time_period_days": time_period_days},
+                self.session_id
+            )
+            raise
+    
+    def _calculate_completion_rate(self, user_id: str, days: int) -> float:
+        """Calculate topic completion rate."""
+        # Implementation details here
+        return 0.85  # placeholder
+    
+    def _calculate_mastery_growth(self, user_id: str, days: int) -> Dict[str, float]:
+        """Calculate mastery growth over time."""
+        # Implementation details here
+        return {"overall_growth": 0.15}  # placeholder
+    
+    def _calculate_engagement_metrics(self, user_id: str, days: int) -> Dict[str, float]:
+        """Calculate user engagement metrics."""
+        # Implementation details here
+        return {
+            "session_frequency": 0.8,
+            "average_duration": 45.0,
+            "completion_consistency": 0.75
+        }
+    
+    def _generate_learning_recommendations(self, user_id: str) -> List[Dict[str, Any]]:
+        """Generate personalized learning recommendations."""
+        # Implementation details here
+        return [
+            {
+                "type": "focus_area",
+                "topic": "advanced_python",
+                "reason": "Build on current strengths"
+            }
+        ]

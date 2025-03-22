@@ -1,4 +1,4 @@
-from typing import Dict, Any, Optional, List, TypeVar, Union
+from typing import Dict, Any, Optional, List, TypeVar, Union, Callable
 from abc import ABC, abstractmethod
 import logging
 from dataclasses import dataclass, field
@@ -6,6 +6,19 @@ from dataclasses import dataclass, field
 logger = logging.getLogger(__name__)
 
 class BaseLearningAgent:
+    def __init__(self, model_name: str, model_params: Dict[str, Any], system_message: Optional[str] = None):
+        """Initialize the base learning agent.
+        
+        Args:
+            model_name: Name of the model to use
+            model_params: Parameters for the model
+            system_message: Optional system message for the model
+        """
+        self.model_name = model_name
+        self.model_params = model_params
+        self.system_message = system_message
+        self.user_profile = {}
+
     def update_user_profile(self, new_profile: Dict[str, Any]) -> None:
         """
         Update the agent's user profile.
