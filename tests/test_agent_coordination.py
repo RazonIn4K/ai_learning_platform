@@ -170,7 +170,8 @@ def test_adaptive_path_adjustment(test_workspace):
     })
     
     # Get adapted path
-    adapted_path = test_workspace.agents["topic_navigator"].specialized_function(
+    adapted_path = test_workspace.agents["learning_coordinator"].delegate_specialized_function(
+        "topic_navigator",
         "adapt_learning_path",
         path=initial_path,
         user_profile=test_workspace.user_profile
@@ -188,7 +189,7 @@ def test_error_recovery(test_workspace):
     coordinator = test_workspace.agents["learning_coordinator"]
     
     # Simulate agent failure
-    error_response = coordinator._handle_agent_error(
+    error_response = coordinator.handle_agent_error(
         "topic_navigator",
         "analyze_topic",
         Exception("Simulated failure"),

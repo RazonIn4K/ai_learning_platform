@@ -1,7 +1,10 @@
 import os
 import json
+import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 class LearningProfileManager:
     """
@@ -16,7 +19,7 @@ class LearningProfileManager:
         Loads the configuration from the specified file.
         """
         try:
-            with open(self.config_path, "r") as f:
+            with open(self.config_path) as f:
                 return json.load(f)
         except FileNotFoundError:
             return {}
@@ -287,3 +290,51 @@ class LearningProfileManager:
             ]
             
         return history
+
+    def update_topic_mastery(self, user_id: str, topic: str, mastery_metrics: Dict[str, Any]) -> None:
+        """
+        Update topic mastery for a user.
+        
+        Args:
+            user_id: User identifier
+            topic: Topic identifier
+            mastery_metrics: Metrics for the topic mastery
+        """
+        # Get the user profile
+        profile = self.get_profile(user_id)
+        if not profile:
+            logger.warning(f"Profile not found for user {user_id}")
+            return
+        
+        # Ensure learning_metrics exists
+        if "learning_metrics" not in profile:
+            profile["learning_metrics"] = {}
+        
+        # Ensure topic entry exists
+        if topic not in profile["learning_metrics"]:
+            profile["learning_metrics"][topic] = {}
+        
+        # Update metrics
+        profile["learning_metrics"][topic].update(mastery_metrics)
+        
+        # Calculate overall mastery level
+        if "overall_mastery" not in profile["learning_metrics"][topic]:
+            # Compute weighted average of metrics
+            metrics_values = [v for k, v in mastery_metrics.items() 
+                            if isinstance(v, (int, float))]
+            if metrics_values:
+                overall_mastery = sum(metrics_values) / len(metrics_values)
+                profile["learning_metrics"][topic]["overall_mastery"] = overall_mastery
+        
+        # Save the updated profile
+        self.update_profile(user_id, profile)
+        
+        # Check if topic is now mastered
+        if self._is_topic_mastered(profile["learning_metrics"][topic]):
+            # Add to mastered topics if not already there
+            if "mastered_topics" not in profile:
+                profile["mastered_topics"] = []
+            if topic not in profile["mastered_topics"]:
+                profile["mastered_topics"].append(topic)
+                # Save again with mastered topics updated
+                self.update_profile(user_id, profile)

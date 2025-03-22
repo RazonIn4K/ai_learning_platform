@@ -122,12 +122,12 @@ class WorkspaceFactory:
             
             # Load configuration
             config_path = workspace_dir / "config.json"
-            with open(config_path, "r") as f:
+            with open(config_path) as f:
                 config_data = json.load(f)
             
             # Load user profile
             profile_path = workspace_dir / "profile.json"
-            with open(profile_path, "r") as f:
+            with open(profile_path) as f:
                 user_profile = json.load(f)
             
             # Create workspace with saved configuration
@@ -148,7 +148,13 @@ class WorkspaceFactory:
     
     @classmethod
     def _load_workspace_state(cls, workspace: LearningWorkspace, workspace_dir: Path) -> None:
-        """Load additional workspace state."""
+        """
+        Load additional workspace state.
+        
+        Args:
+            workspace: LearningWorkspace instance
+            workspace_dir: Directory containing workspace state
+        """
         # Load learning history
         history_path = workspace_dir / "learning_history.json"
         if history_path.exists():
@@ -162,6 +168,7 @@ class WorkspaceFactory:
         # Load knowledge graph if available
         knowledge_path = workspace_dir / "knowledge_graph.json"
         if knowledge_path.exists():
+            # Fix: Call the knowledge_mapper's load_graph method
             workspace.knowledge_mapper.load_graph(str(knowledge_path))
     
     @classmethod
@@ -193,6 +200,7 @@ class WorkspaceFactory:
             
             # Save learning history if available
             if workspace.profile_manager and workspace.user_profile.get("user_id"):
+                # Fix: Call the profile_manager's get_learning_history method
                 history = workspace.profile_manager.get_learning_history(
                     workspace.user_profile["user_id"]
                 )

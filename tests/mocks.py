@@ -93,6 +93,14 @@ def create_mock_knowledge_mapper():
     
     mock.get_knowledge_state.side_effect = mock_get_knowledge_state
     
+    # Implement the missing update_knowledge method
+    def mock_update_knowledge(user_id, topic, confidence):
+        if user_id not in knowledge_states:
+            knowledge_states[user_id] = {}
+        knowledge_states[user_id][topic] = max(knowledge_states[user_id].get(topic, 0.0), confidence)
+    
+    mock.update_knowledge.side_effect = mock_update_knowledge
+    
     return mock
 
 def create_mock_model():

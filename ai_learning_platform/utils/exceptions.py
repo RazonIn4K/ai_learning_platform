@@ -4,46 +4,39 @@ class AILearningPlatformError(Exception):
     """Base exception for all AI Learning Platform errors."""
     pass
 
-class TopicNotFoundError(AILearningPlatformError):
-    """Raised when a topic is not found in the hierarchy."""
+class TopicHierarchyError(AILearningPlatformError):
+    """Raised when there's an error in the topic hierarchy or its operation fails."""
     pass
 
 class KnowledgeBaseError(AILearningPlatformError):
-    """Raised when there's an error accessing the knowledge base."""
+    """Raised when there's an error in the knowledge base or its operation fails."""
     pass
 
 class AgentOperationError(AILearningPlatformError):
-    """Raised when an agent operation fails."""
+    """Raised when an agent operation fails or is not supported."""
     pass
 
 class ModelError(AILearningPlatformError):
-    """Raised when there's an error with a model."""
+    """Raised when there's an error in the model or its operation fails."""
     pass
 
 class CoordinationError(AILearningPlatformError):
-    """Raised when there's an error coordinating multiple agents."""
+    """Raised when there's an error in agent coordination or its operation fails."""
     pass
 
 class WorkspaceError(AILearningPlatformError):
-    """Raised when there's an error in the learning workspace."""
+    """Raised when there's an error in the learning workspace or its operation fails."""
     pass
 
 class ConfigurationError(AILearningPlatformError):
-    """Raised when there's an error in the configuration."""
-    pass
-
-class ConfigurationError(AILearningPlatformError):
-    """Raised when there's an error in configuration."""
+    """Raised when there's an error in the configuration or its operation fails."""
     pass
 
 class LearningPathError(AILearningPlatformError):
-    """Raised when there's an error creating a learning path."""
+    """Raised when there's an error in the learning path or its operation fails."""
     pass
 
 class ProfileError(AILearningPlatformError):
-    """Raised when there's an error with a user profile."""
+    """Raised when there's an error in the user profile or its operation fails."""
     pass
 
-class WorkspaceError(AILearningPlatformError):
-    """Raised when there's an error in the learning workspace."""
-    pass

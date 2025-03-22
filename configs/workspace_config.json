@@ -1,56 +1,66 @@
 {
-  "default_models": {
-    "topic_navigator": "gpt-4o",
-    "domain_expert": "claude-3-7-sonnet-20250219",
-    "learning_coordinator": "o3-mini"
+  "model": {
+    "provider": "anthropic",
+    "model_name": "claude-3-7-sonnet-20250219",
+    "temperature": 0.3,
+    "max_tokens": 3000
   },
-  "domains": ["python", "cybersecurity"],
+  "learning": {
+    "mastery_threshold": 0.9,
+    "session_duration": 1800,
+    "topics_per_session": 2
+  },
+  "workspace": {
+    "state_dir": "workspace_data",
+    "log_level": "INFO"
+  },
+  "default_models": {
+    "topic_navigator": "claude-3-7-sonnet-20250219",
+    "domain_expert": "claude-3-7-sonnet-20250219",
+    "learning_coordinator": "claude-3-7-sonnet-20250219"
+  },
+  "domains": ["python", "machine_learning", "cybersecurity"],
   "default_user_profile": {
     "topics_learned": [],
     "interests": [],
     "learning_style": "self_paced",
     "complexity_preference": "beginner"
   },
+  "model_configurations": {
+    "complex_reasoning": {
+      "model_name": "claude-3-7-sonnet-20250219",
+      "params": {
+        "thinking_enabled": true,
+        "thinking_tokens": 3000,
+        "temperature": 0.1
+      }
+    },
+    "code_generation": {
+      "model_name": "claude-3-7-sonnet-20250219",
+      "params": {
+        "thinking_enabled": true,
+        "thinking_tokens": 3000,
+        "temperature": 0.1
+      }
+    },
+    "quick_responses": {
+      "model_name": "claude-3-7-sonnet-20250219",
+      "params": {
+        "temperature": 0.3
+      }
+    }
+  },
   "enable_research": true,
   "learning_style": "balanced",
   "model_type": "standard",
-  "tracking_level": "basic"
-}
-
-{
-  "complex_reasoning": {
-    "model_name": "claude-3-7-sonnet-20250219",
-    "params": {
-      "thinking_enabled": true,
-      "thinking_tokens": 3000,
-      "temperature": 0.1
-    }
-  },
-  "code_generation": {
-    "model_name": "claude-3-7-sonnet-20250219",
-    "params": {
-      "thinking_enabled": true,
-      "thinking_tokens": 2000,
-      "temperature": 0.1
-    }
-  },
-  "creative_writing": {
-    "model_name": "gpt-4o",
-    "params": {
-      "temperature": 0.7,
-      "top_p": 0.9
-    }
-  },
-  "factual_responses": {
-    "model_name": "gemini-2.0-pro-experimental",
-    "params": {
-      "temperature": 0.1
-    }
-  },
-  "quick_responses": {
-    "model_name": "gpt-4o-mini",
-    "params": {
-      "temperature": 0.3
+  "tracking_level": "detailed",
+  "profiles": {
+    "default": {
+      "user_id": "default",
+      "learning_style": "self_paced",
+      "complexity_preference": "beginner",
+      "interests": ["python", "machine learning"],
+      "topics_learned": []
     }
   }
 }

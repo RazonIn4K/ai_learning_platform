@@ -1,11 +1,44 @@
-from typing import Dict, Any, Optional, List, TypeVar, Union, Callable
-from abc import ABC, abstractmethod
 import logging
-from dataclasses import dataclass, field
+import inspect
+from typing import Dict, Any, Optional, List, Callable
+from dataclasses import asdict
+from ..workspace.workspace_config import WorkspaceConfig
 
 logger = logging.getLogger(__name__)
 
-class BaseLearningAgent:
+class BaseAgent:
+    """Base class for all agents in the learning platform."""
+    
+    def __init__(self, config: WorkspaceConfig):
+        config_dict = asdict(config)
+        self.model_type = config_dict.get('model_type', 'standard')
+        self.domains = config_dict.get('domains', ['general'])
+        self.learning_style = config_dict.get('learning_style', 'balanced')
+        self.tracking_level = config_dict.get('tracking_level', 'basic')
+        self.enable_research = config_dict.get('enable_research', False)
+
+    def specialized_function(self, function_name: str, **kwargs) -> Any:
+        """Execute a specialized function if implemented by the agent."""
+        if hasattr(self, f"_{function_name}"):
+            return getattr(self, f"_{function_name}")(**kwargs)
+        raise NotImplementedError(f"Function {function_name} not implemented")
+
+    def handle_error(self, function_name: str, error: Exception, query: str, 
+                    context: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle errors in agent operations."""
+        return {
+            "success": False,
+            "error": str(error),
+            "function": function_name,
+            "fallback_response": "Unable to complete operation",
+            "error_details": {
+                "query": query,
+                "context": context,
+                "error_type": type(error).__name__
+            }
+        }
+
+class BaseLearningAgent(BaseAgent):
     """
     Base class for all learning agents in the platform.
     
@@ -35,6 +68,7 @@ class BaseLearningAgent:
             model_params: Parameters for the model (e.g., temperature, max_tokens)
             system_message: Optional system message for the model that defines its behavior
         """
+        super().__init__({})  # Initialize with empty config for now
         self.model_name = model_name
         self.model_params = model_params
         self.system_message = system_message
@@ -59,8 +93,7 @@ class BaseLearningAgent:
         Returns:
             True if the agent can handle the topic
         """
-        # Base implementation - should be overridden by specialized agents
-        return False
+        return True  # Base implementation always returns True
         
     def get_insights(self, topics: List[str]) -> Dict[str, Any]:
         """
@@ -172,12 +205,12 @@ class BaseLearningAgent:
 
     def _validate_function_params(self, func: Callable, params: Dict[str, Any]) -> None:
         """Validate parameters for specialized function."""
-        import inspect
         sig = inspect.signature(func)
         required_params = {
             name for name, param in sig.parameters.items()
             if param.default == inspect.Parameter.empty
             and param.kind != inspect.Parameter.VAR_KEYWORD
+            and name != 'self'
         }
         missing_params = required_params - set(params.keys())
         if missing_params:
@@ -200,7 +233,7 @@ class BaseLearningAgent:
             
             # Process the query based on the analysis
             return {
-                "content": f"Processed query: {query[:50]}...",
+                "content": f"Processed query: {query[:50]}...",  # Truncate to 50 characters
                 "analysis": analysis,
                 "agent": self.__class__.__name__
             }

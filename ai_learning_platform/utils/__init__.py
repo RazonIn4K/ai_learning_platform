@@ -2,7 +2,8 @@
 
 from .topic_hierarchy import TopicHierarchy, Topic, load_topic_hierarchy
 from .config_loader import ConfigLoader, get_config_loader
-from .learning_profile_manager import LearningProfileManager
+from .knowledge_mapper import KnowledgeMapper
+from .learning_profile_manager import LearningProfileManager  # Added missing import
 
 __all__ = [
     "TopicHierarchy",

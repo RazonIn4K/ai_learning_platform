@@ -1,6 +1,6 @@
 """Agent module initialization."""
 
-from .base_agent import BaseLearningAgent
+from .base_agent import BaseAgent
 from .topic_navigator import TopicNavigatorAgent
 from .connection_expert import ConnectionExpert
 from .domain_expert import DomainExpertAgent
@@ -9,7 +9,7 @@ from .knowledge_agent import KnowledgeAgent
 from .coordinator import LearningCoordinatorAgent
 
 __all__ = [
-    'BaseLearningAgent',
+    'BaseAgent',
     'TopicNavigatorAgent',
     'ConnectionExpert',
     'DomainExpertAgent',
