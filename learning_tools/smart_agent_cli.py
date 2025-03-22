@@ -5,9 +5,9 @@ import json
 from pathlib import Path
 from typing import Dict, Any
 from .smart_learning_agent import SmartLearningAgent
-from ..utils.config_loader import ConfigLoader
-from ..workspace import LearningWorkspace
-from ..tracking.progress_tracker import ProgressTracker
+from ..ai_learning_platform.utils.config_loader import ConfigLoader
+from ..ai_learning_platform.workspace import LearningWorkspace
+from ..ai_learning_platform.tracking.progress_tracker import ProgressTracker
 
 def print_learning_path(learning_path):
     """Print a formatted learning path."""
@@ -69,7 +69,7 @@ def main():
     parser = argparse.ArgumentParser(description='Smart Learning Agent')
     parser.add_argument('--project', help='Path to project context file')
     parser.add_argument('--config', help='Path to config file', 
-                       default="configs/base_config.json")
+                       default="learning_config/base_config.json")
     parser.add_argument('--data-dir', help='Path to data directory', 
                        default="learning_data")
     subparsers = parser.add_subparsers(dest='command', help='Command to run')
@@ -114,7 +114,7 @@ def main():
     
     if args.command == 'learn':
         if args.template:
-            from ..workspace.workspace_template import WorkspaceTemplate
+            from ..ai_learning_platform.workspace import WorkspaceTemplate
             template = WorkspaceTemplate(args.template)
             workspace = template.build_workspace([])
         
@@ -129,7 +129,7 @@ def main():
             print(f"\n{response.get('message', 'No learning path created.')}")
     
     elif args.command == 'template':
-        from ..workspace.workspace_template import WorkspaceTemplate
+        from ..ai_learning_platform.workspace import WorkspaceTemplate
         
         if args.template_command == 'create':
             template = WorkspaceTemplate(args.name)
@@ -148,8 +148,7 @@ def main():
     
     elif args.command == 'status':
         progress = workspace.get_learning_progress()
-        print_progress(progress)
-        
+        print_learning_progress(progress)
         if progress.get('recommendations'):
             print_recommendations(progress['recommendations'])
     

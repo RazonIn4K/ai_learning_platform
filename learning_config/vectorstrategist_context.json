@@ -1,0 +1,35 @@
+{
+  "project_name": "VectorStrategist",
+  "project_description": "A framework combining differential geometry, topology, causal inference, and category theory to analyze AI security vulnerabilities",
+  "focus_areas": [
+    "Red teaming competitions",
+    "Prompt injection attacks",
+    "Adversarial machine learning", 
+    "Security manifold analysis",
+    "Large language model vulnerability assessment"
+  ],
+  "components": [
+    {
+      "name": "Security Manifold Engine",
+      "description": "Uses differential geometry and topological data analysis to map security boundaries in AI systems",
+      "technologies": ["GEF", "giotto-tda", "GUDHI"]
+    },
+    {
+      "name": "Causal Analysis Engine",
+      "description": "Identifies causal pathways for security vulnerabilities and attack vectors",
+      "technologies": ["IBM Activation Steering", "DoWhy"]
+    },
+    {
+      "name": "Scale Dynamics Analyzer",
+      "description": "Analyzes how security properties evolve across model scales",
+      "technologies": ["HuggingFace", "PyDSTool"]
+    },
+    {
+      "name": "Multi-Paradigm Integration",
+      "description": "Uses category theory to create unified security abstractions",
+      "technologies": ["Pycategories"]
+    }
+  ],
+  "hardware": ["M2 MacBook Pro Max", "RTX 2060"],
+  "objective": "Develop advanced red teaming capabilities for AI systems with a focus on competition scenarios and prompt injection techniques"
+}

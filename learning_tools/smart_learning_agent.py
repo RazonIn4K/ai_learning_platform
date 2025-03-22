@@ -8,8 +8,8 @@ from datetime import datetime
 import numpy as np
 from collections import Counter
 
-from ai_learning_platform.workspace import LearningWorkspace
-from ai_learning_platform.workspace.workspace_config import WorkspaceConfig
+from ..ai_learning_platform.workspace import LearningWorkspace
+from ..ai_learning_platform.workspace.workspace_config import WorkspaceConfig
 
 class SmartLearningAgent:
     """Intelligent agent that maps natural language queries to relevant topics."""
@@ -35,7 +35,7 @@ class SmartLearningAgent:
         hierarchy = {}
         
         # Check if the topic hierarchy file exists
-        hierarchy_file = Path("topic_hierarchy.txt")
+        hierarchy_file = Path("learning_config/topic_hierarchy.txt")
         if not hierarchy_file.exists():
             print("Warning: topic_hierarchy.txt not found. Creating an empty hierarchy.")
             return {}

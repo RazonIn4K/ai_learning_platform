@@ -26,6 +26,7 @@ setup(
         'console_scripts': [
             'ai-learning-platform=ai_learning_platform.cli:main',
             'ai-learning-web=ai_learning_platform.web:main',
+            'setup-learning-system=learning_tools.setup_learning_system:main'
         ],
     },
     classifiers=[
