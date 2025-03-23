@@ -1,7 +1,7 @@
 """Model registry for managing AI model clients."""
 
 import logging
-from typing import Dict, Any, Optional, Type
+from typing import Dict, Any, Optional, Type, List
 from abc import ABC, abstractmethod
 
 logger = logging.getLogger(__name__)

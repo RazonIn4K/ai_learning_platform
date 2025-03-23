@@ -1,0 +1,3 @@
+Raw Data: The .txt files in the results/ directory contain the raw data of the AI agent's responses.
+Evidence: These files serve as evidence of your interactions with the AI agents.
+Reference: You can refer back to these files to see exactly what the AI agent said.

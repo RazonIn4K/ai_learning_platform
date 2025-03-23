@@ -5,7 +5,14 @@ import logging
 from typing import Dict, Any, List, Optional
 
 # Add to existing imports
-from ..gray_swan.camel_integration import GraySwanCamelIntegration
+try:
+    from ..gray_swan.camel_integration import GraySwanCamelIntegration
+except ImportError:
+    # Mock class if camel-ai is not installed
+    class GraySwanCamelIntegration:
+        def __init__(self, *args, **kwargs):
+            logging.warning("GraySwanCamelIntegration is not available. Install camel-ai package to use it.")
+
 from ..gray_swan.benchmarker import GraySwanBenchmarker
 
 # Configure logging

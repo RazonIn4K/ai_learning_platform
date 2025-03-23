@@ -1,0 +1,5 @@
+{
+    "geminicodeassist.beta.enableGeneratedCodeDocumentationView": true,
+    "geminicodeassist.chat.collapseCodeBlocksByDefault": true,
+    "geminicodeassist.codeGenerationPaneViewEnabled": true
+}

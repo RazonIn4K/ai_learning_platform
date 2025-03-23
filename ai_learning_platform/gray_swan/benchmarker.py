@@ -9,7 +9,15 @@ import numpy as np
 from typing import List, Dict, Any, Optional, Tuple
 from pathlib import Path
 
-from ai_learning_platform.gray_swan.camel_integration import GraySwanCamelIntegration
+# Try to import camel integration, but provide a mock if not available
+try:
+    from ai_learning_platform.gray_swan.camel_integration import GraySwanCamelIntegration
+except ImportError:
+    # Mock class if camel-ai is not installed
+    class GraySwanCamelIntegration:
+        def __init__(self, *args, **kwargs):
+            logging.warning("GraySwanCamelIntegration is not available. Install camel-ai package to use it.")
+
 from ai_learning_platform.gray_swan.prompt_generator import GraySwanPromptGenerator
 from ai_learning_platform.models.enhanced_model_manager import EnhancedModelManager
 
