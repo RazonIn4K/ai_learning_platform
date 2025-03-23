@@ -3,8 +3,6 @@ from setuptools import setup, find_packages
 setup(
     name="vectorstrategist",
     version="0.1.0",
-    description="AI Learning Platform with Topic Navigation",
-    author="Your Name",
     packages=find_packages(include=['ai_learning_platform', 'ai_learning_platform.*']),
     install_requires=[
         line.strip()
@@ -18,5 +16,4 @@ setup(
         ],
     },
     python_requires=">=3.8",
-    zip_safe=False
 )

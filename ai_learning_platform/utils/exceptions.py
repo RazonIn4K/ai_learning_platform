@@ -1,42 +1,45 @@
-# In ai_learning_platform/utils/exceptions.py
+# ai_learning_platform/utils/exceptions.py
 
-class AILearningPlatformError(Exception):
+class LearningPlatformError(Exception):
     """Base exception for all AI Learning Platform errors."""
     pass
 
-class TopicHierarchyError(AILearningPlatformError):
-    """Raised when there's an error in the topic hierarchy or its operation fails."""
+class ModelError(LearningPlatformError):
+    """Raised when a model operation fails."""
     pass
 
-class KnowledgeBaseError(AILearningPlatformError):
-    """Raised when there's an error in the knowledge base or its operation fails."""
+class AgentError(LearningPlatformError):
+    """Raised when an agent operation fails."""
     pass
 
-class AgentOperationError(AILearningPlatformError):
-    """Raised when an agent operation fails or is not supported."""
+class CredentialError(LearningPlatformError):
+    """Raised when credential validation fails."""
     pass
 
-class ModelError(AILearningPlatformError):
-    """Raised when there's an error in the model or its operation fails."""
+class ConfigError(LearningPlatformError):
+    """Raised when configuration is invalid or missing."""
     pass
 
-class CoordinationError(AILearningPlatformError):
-    """Raised when there's an error in agent coordination or its operation fails."""
+class RateLimitError(ModelError):
+    """Raised when a rate limit is hit for a model API."""
     pass
 
-class WorkspaceError(AILearningPlatformError):
-    """Raised when there's an error in the learning workspace or its operation fails."""
+class TokenLimitError(ModelError):
+    """Raised when a token limit is exceeded."""
     pass
 
-class ConfigurationError(AILearningPlatformError):
-    """Raised when there's an error in the configuration or its operation fails."""
+class ModelResponseError(ModelError):
+    """Raised when a model response is invalid or contains errors."""
     pass
 
-class LearningPathError(AILearningPlatformError):
-    """Raised when there's an error in the learning path or its operation fails."""
+class ValidationError(LearningPlatformError):
+    """Raised when validation fails for inputs or outputs."""
     pass
 
-class ProfileError(AILearningPlatformError):
-    """Raised when there's an error in the user profile or its operation fails."""
+class ContentFilterError(ValidationError):
+    """Raised when content is filtered due to safety concerns."""
     pass
 
+class QualityCheckError(ValidationError):
+    """Raised when quality checks fail for model responses."""
+    pass
