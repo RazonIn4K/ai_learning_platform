@@ -111,3 +111,6 @@ env/
 # Environment files
 .env
 .env.example
+
+# Firebase service account key
+gen-lang-client-0374963993-firebase-adminsdk-fbsvc-1dee0c8626.json

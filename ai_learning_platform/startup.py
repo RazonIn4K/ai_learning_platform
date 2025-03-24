@@ -28,6 +28,8 @@ class PlatformInitializer:
         
     async def initialize(self) -> Dict[str, Any]:
         """Initialize all platform components."""
+        from .firebase_init import initialize_firebase
+        initialize_firebase()
         try:
             # Initialize core components
             model_handler = ModelHandler()

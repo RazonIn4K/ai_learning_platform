@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 from datetime import datetime
 
+from firebase_admin import firestore
+
 from ..templates.workspace_template import WorkspaceTemplate
 from ..utils.config_manager import ConfigManager
 from .prompt_generator import GraySwanPromptGenerator
@@ -157,14 +159,28 @@ class GraySwanAutomator:
         
         return challenge_descriptions
 
-    def save_challenge_description(self, challenge_name: str, description: str):
+    async def save_challenge_description(self, challenge_name: str, description: str):
         """
-        Save a challenge description to the config file.
+        Save a challenge description to Firestore and the local config file.
         
         Args:
             challenge_name: Name of the challenge
             description: Description of the challenge
+            
+        Raises:
+            ValueError: If challenge_name or description is invalid
+            IOError: If there's an error with file operations
+            firestore.exceptions.FailedPrecondition: If Firestore preconditions fail
+            firestore.exceptions.Unavailable: If Firestore service is unavailable
+            firestore.exceptions.Unauthenticated: If authentication fails
         """
+        # Validate inputs
+        if not challenge_name:
+            raise ValueError("challenge_name cannot be empty")
+        if not description:
+            raise ValueError("description cannot be empty")
+            
+        # Save to local file for backward compatibility
         config_file = os.path.join(self.base_dir, "challenge_descriptions.json")
         
         # Load existing descriptions
@@ -173,21 +189,64 @@ class GraySwanAutomator:
             try:
                 with open(config_file, "r") as f:
                     challenge_descriptions = json.load(f)
-            except Exception as e:
-                logger.error(f"Error loading challenge descriptions: {e}")
+            except json.JSONDecodeError as e:
+                logger.error(f"Error parsing challenge descriptions JSON: {e}")
+                raise IOError(f"Invalid JSON in challenge descriptions file: {e}")
+            except IOError as e:
+                logger.error(f"Error reading challenge descriptions file: {e}")
+                raise
         
         # Add or update description
         challenge_descriptions[challenge_name] = description
         
-        # Save updated descriptions
+        # Save updated descriptions to local file
         try:
             with open(config_file, "w") as f:
                 json.dump(challenge_descriptions, f, indent=2)
-            logger.info(f"Saved description for challenge: {challenge_name}")
+            logger.info(f"Saved description for challenge: {challenge_name} to local file")
+        except IOError as e:
+            logger.error(f"Error writing to challenge descriptions file: {e}")
+            raise
+            
+        # Save to Firestore
+        try:
+            from ai_learning_platform.utils.firestore_manager import FirestoreManager
+            from ai_learning_platform.utils.config_manager import ConfigManager
+            from firebase_admin import firestore
+            
+            # Initialize FirestoreManager
+            config_manager = ConfigManager()
+            credentials_path = config_manager.load_firebase_config()
+            firestore_manager = FirestoreManager(credentials_path=credentials_path)
+            
+            # Create challenge data
+            challenge_data = {
+                'challenge_id': challenge_name,
+                'description': description,
+                'creation_timestamp': firestore.SERVER_TIMESTAMP,
+                'updated_timestamp': firestore.SERVER_TIMESTAMP,
+                'status': 'active'
+            }
+            
+            # Save to Firestore 'challenges' collection
+            doc_ref = firestore_manager.db.collection("challenges").document(challenge_name)
+            await doc_ref.set(challenge_data)
+            logger.info(f"Saved challenge description to Firestore: {challenge_name}")
+            
+        except firestore.exceptions.FailedPrecondition as e:
+            logger.error(f"Firestore precondition failed: {e}")
+            raise
+        except firestore.exceptions.Unavailable as e:
+            logger.error(f"Firestore service unavailable: {e}")
+            raise
+        except firestore.exceptions.Unauthenticated as e:
+            logger.error(f"Firestore authentication error: {e}")
+            raise
         except Exception as e:
-            logger.error(f"Error saving challenge description: {e}")
+            logger.error(f"Unexpected error saving challenge description to Firestore: {e}")
+            raise
 
-    def analyze_challenge(self, challenge_description: str, challenge_name: str, wave: str):
+    async def analyze_challenge(self, challenge_description: str, challenge_name: str, wave: str):
         """
         Analyzes a challenge description and generates insights.
         
@@ -195,11 +254,14 @@ class GraySwanAutomator:
             challenge_description: Description of the challenge
             challenge_name: Name of the challenge
             wave: Wave the challenge belongs to
+            
+        Returns:
+            str: Analysis of the challenge
         """
         logger.info(f"Analyzing challenge: {challenge_name} in {wave}...")
         
         # Save the challenge description
-        self.save_challenge_description(challenge_name, challenge_description)
+        await self.save_challenge_description(challenge_name, challenge_description)
         
         # Process the challenge using the workspace
         analysis = self.base_red_teaming_workspace.process_learning_session(
@@ -236,27 +298,58 @@ class GraySwanAutomator:
             f.write(f"Analysis: {analysis}\n")
             f.write(f"Visualization: {visualization}\n")
             f.write(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-            f.write(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        
+        # Save analysis to Firestore
+        try:
+            from ai_learning_platform.utils.firestore_manager import FirestoreManager
+            from ai_learning_platform.utils.config_manager import ConfigManager
+            
+            # Initialize FirestoreManager
+            config_manager = ConfigManager()
+            credentials_path = config_manager.load_firebase_config()
+            firestore_manager = FirestoreManager(credentials_path=credentials_path)
+            
+            # Create analysis data
+            analysis_data = {
+                'challenge_id': challenge_name,
+                'wave': wave,
+                'analysis': analysis,
+                'visualization': visualization,
+                'creation_timestamp': firestore.SERVER_TIMESTAMP,
+                'analysis_type': 'automated'
+            }
+            
+            # Save to Firestore 'challenge_analyses' collection
+            doc_ref = firestore_manager.db.collection("challenge_analyses").document()
+            await doc_ref.set(analysis_data)
+            logger.info(f"Saved challenge analysis to Firestore with ID: {doc_ref.id}")
+        except Exception as e:
+            logger.error(f"Error saving challenge analysis to Firestore: {e}")
         
         logger.info(f"Analysis for {challenge_name} complete.")
         
         return analysis
+        
+        return analysis
 
-    def generate_prompts(self, challenge_name: str, wave: str, attack_categories: Optional[List[str]] = None):
+    async def generate_prompts(self, challenge_name: str, wave: str, attack_categories: Optional[List[str]] = None):
         """
-        Generates initial prompts for a given challenge.
+        Generates initial prompts for a given challenge and saves them to Firestore.
         
         Args:
             challenge_name: Name of the challenge
             wave: Wave the challenge belongs to
             attack_categories: Optional list of attack categories to focus on
+            
+        Returns:
+            List of generated prompts
         """
         logger.info(f"Generating prompts for {challenge_name} in {wave}...")
         
         if attack_categories is None:
             attack_categories = [
-                "confidentiality_breach", 
-                "conflicting_objectives", 
+                "confidentiality_breach",
+                "conflicting_objectives",
                 "hierarchy_violation_info",
                 "hierarchy_violation_action"
             ]
@@ -304,7 +397,7 @@ class GraySwanAutomator:
             
             prompts.extend([(f"{category} - {name}", prompt) for name, prompt in techniques])
         
-        # Write prompts to file
+        # Write prompts to file for backward compatibility
         prompts_file = os.path.join(self.prompts_dir, wave, f"{challenge_name}.txt")
         with open(prompts_file, "w") as f:
             f.write(f"# Prompts for {challenge_name} ({wave})\n\n")
@@ -314,6 +407,50 @@ class GraySwanAutomator:
                 f.write(f"## {name}\n\n")
                 f.write(f"{prompt}\n\n")
                 f.write("-" * 80 + "\n\n")
+        
+        # Save prompts to Firestore
+        try:
+            from ai_learning_platform.utils.firestore_manager import FirestoreManager
+            from ai_learning_platform.utils.config_manager import ConfigManager
+            
+            # Initialize FirestoreManager
+            config_manager = ConfigManager()
+            credentials_path = config_manager.load_firebase_config()
+            firestore_manager = FirestoreManager(credentials_path=credentials_path)
+            
+            # Save each prompt to Firestore
+            for name, prompt_text in prompts:
+                # Determine technique and target from the name
+                parts = name.split(' - ', 1)
+                category = parts[0]
+                technique = parts[1] if len(parts) > 1 else "Basic"
+                
+                # Create prompt data
+                prompt_data = await self.prompt_generator.create_prompt_data(
+                    prompt_text=prompt_text,
+                    category=category,
+                    target=challenge_name,
+                    technique=technique,
+                    techniques_used=[technique],
+                    filename=f"{category}_{challenge_name}_{technique}.txt",
+                    challenge_id=challenge_name
+                )
+                
+                # Save to Firestore
+                prompt_id = await self.prompt_generator.save_prompt_to_firestore(
+                    prompt_text=prompt_text,
+                    category=category,
+                    target=challenge_name,
+                    technique=technique,
+                    techniques_used=[technique],
+                    filename=f"{category}_{challenge_name}_{technique}.txt",
+                    challenge_id=challenge_name
+                )
+                
+                logger.info(f"Saved prompt to Firestore with ID: {prompt_id}")
+                
+        except Exception as e:
+            logger.error(f"Error saving prompts to Firestore: {e}")
         
         logger.info(f"Generated {len(prompts)} prompts for {challenge_name}.")
         
@@ -341,9 +478,9 @@ class GraySwanAutomator:
         
         return agent_workspace
 
-    def record_response(self, agent_name: str, wave: str, challenge_name: str, prompt: str, response: str, success: bool = False):
+    async def record_response(self, agent_name: str, wave: str, challenge_name: str, prompt: str, response: str, success: bool = False):
         """
-        Records an AI agent's response to a prompt.
+        Records an AI agent's response to a prompt in both local file and Firestore.
         
         Args:
             agent_name: Name of the AI agent
@@ -353,11 +490,14 @@ class GraySwanAutomator:
             response: The AI agent's response
             success: Whether the prompt was successful
         """
+        # Save to local file for backward compatibility
         agent_dir = os.path.join(self.results_dir, agent_name.replace(" ", "_").lower())
         response_file = os.path.join(agent_dir, wave, f"{challenge_name}.txt")
         
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
         with open(response_file, "a") as f:
-            f.write(f"# Response - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+            f.write(f"# Response - {timestamp}\n\n")
             f.write(f"Success: {'Yes' if success else 'No'}\n\n")
             f.write("## Prompt\n\n")
             f.write(f"{prompt}\n\n")
@@ -365,9 +505,42 @@ class GraySwanAutomator:
             f.write(f"{response}\n\n")
             f.write("-" * 80 + "\n\n")
         
-        logger.info(f"Recorded response from {agent_name} for {challenge_name} in {wave}.")
+        logger.info(f"Recorded response from {agent_name} for {challenge_name} in {wave} to local file.")
+        
+        # Save to Firestore
+        try:
+            from ai_learning_platform.utils.firestore_manager import FirestoreManager
+            from ai_learning_platform.utils.config_manager import ConfigManager
+            import uuid
+            
+            # Initialize FirestoreManager
+            config_manager = ConfigManager()
+            credentials_path = config_manager.load_firebase_config()
+            firestore_manager = FirestoreManager(credentials_path=credentials_path)
+            
+            # Create response data
+            response_data = {
+                'agent_name': agent_name,
+                'wave': wave,
+                'challenge_id': challenge_name,
+                'prompt': prompt,
+                'response': response,
+                'success': success,
+                'success_score': 1.0 if success else 0.0,
+                'creation_timestamp': firestore.SERVER_TIMESTAMP,
+                'run_id': str(uuid.uuid4()),
+                'response_length': len(response),
+                'response_snippet': response[:200] if len(response) > 200 else response
+            }
+            
+            # Save to Firestore 'agent_responses' collection
+            doc_ref = firestore_manager.db.collection("agent_responses").document()
+            await doc_ref.set(response_data)
+            logger.info(f"Saved agent response to Firestore with ID: {doc_ref.id}")
+        except Exception as e:
+            logger.error(f"Error saving agent response to Firestore: {e}")
 
-    def run(self, challenge_descriptions: Optional[Dict[str, str]] = None):
+    async def run(self, challenge_descriptions: Optional[Dict[str, str]] = None):
         """
         Runs the automation process.
         
@@ -380,7 +553,7 @@ class GraySwanAutomator:
         # Load challenge descriptions
         if challenge_descriptions:
             for challenge_name, description in challenge_descriptions.items():
-                self.save_challenge_description(challenge_name, description)
+                await self.save_challenge_description(challenge_name, description)
         
         loaded_descriptions = self.load_challenge_descriptions()
         
@@ -391,19 +564,24 @@ class GraySwanAutomator:
                 
                 if challenge_description:
                     # Analyze challenge
-                    self.analyze_challenge(challenge_description, challenge_name, wave)
+                    await self.analyze_challenge(challenge_description, challenge_name, wave)
                     
                     # Generate prompts
-                    self.generate_prompts(challenge_name, wave)
+                    await self.generate_prompts(challenge_name, wave)
                 else:
                     logger.warning(f"No description found for challenge: {challenge_name}")
         
         logger.info("Automation process complete.")
 
-def main():
+async def main():
     """Main function to run the GraySwanAutomator."""
+    # Initialize Firebase
+    from ai_learning_platform.firebase_init import initialize_firebase
+    initialize_firebase()
+    
     automator = GraySwanAutomator()
-    automator.run()
+    await automator.run()
 
 if __name__ == "__main__":
-    main()
+    import asyncio
+    asyncio.run(main())

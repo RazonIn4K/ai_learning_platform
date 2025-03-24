@@ -5,6 +5,7 @@ import json
 import time
 import logging
 import random
+import uuid
 import numpy as np
 from typing import List, Dict, Any, Optional, Tuple
 from pathlib import Path
@@ -169,13 +170,106 @@ class GraySwanBenchmarker:
 
         Returns:
             str: The document ID of the newly created benchmark result.
+            
+        Raises:
+            ValueError: If result_data is invalid
+            firestore.exceptions.AlreadyExists: If a result with the same ID already exists
+            firestore.exceptions.FailedPrecondition: If Firestore preconditions fail
+            firestore.exceptions.Unavailable: If Firestore service is unavailable
+            firestore.exceptions.Unauthenticated: If authentication fails
         """
+        from firebase_admin import firestore
+        
         try:
+            # Validate input
+            if not result_data:
+                raise ValueError("result_data cannot be empty")
+                
+            # Generate a run_id if not provided
+            if "run_id" not in result_data:
+                result_data["run_id"] = str(uuid.uuid4())
+                
+            # Add timestamp if not present
+            if "timestamp" not in result_data:
+                result_data["timestamp"] = firestore.SERVER_TIMESTAMP
+                
             result_id = await self.firestore_manager.add_new_benchmark_result(result_data)
             logging.info(f"Benchmark result saved to Firestore with ID: {result_id}")
             return result_id
+            
+        except ValueError as e:
+            logging.error(f"Validation error: {e}")
+            raise
+        except firestore.exceptions.AlreadyExists as e:
+            logging.error(f"Result already exists: {e}")
+            raise
+        except firestore.exceptions.FailedPrecondition as e:
+            logging.error(f"Firestore precondition failed: {e}")
+            raise
+        except firestore.exceptions.Unavailable as e:
+            logging.error(f"Firestore service unavailable: {e}")
+            raise
+        except firestore.exceptions.Unauthenticated as e:
+            logging.error(f"Firestore authentication error: {e}")
+            raise
         except Exception as e:
-            logging.error(f"Error saving benchmark result to Firestore: {e}")
+            logging.error(f"Unexpected error saving benchmark result to Firestore: {e}")
+            raise
+            
+    async def batch_write_results(self, result_data_list: List[Dict[str, Any]]) -> List[str]:
+        """
+        Saves multiple benchmark results to Firestore using batch writes.
+
+        Args:
+            result_data_list (List[Dict[str, Any]]): A list of dictionaries, each containing benchmark result data.
+
+        Returns:
+            List[str]: The document IDs of the newly created benchmark results.
+            
+        Raises:
+            ValueError: If result_data_list is empty or contains invalid data
+            firestore.exceptions.FailedPrecondition: If Firestore preconditions fail
+            firestore.exceptions.Unavailable: If Firestore service is unavailable
+            firestore.exceptions.Unauthenticated: If authentication fails
+            firestore.exceptions.InvalidArgument: If the batch size exceeds Firestore limits
+        """
+        from firebase_admin import firestore
+        
+        try:
+            # Validate input
+            if not result_data_list:
+                raise ValueError("result_data_list cannot be empty")
+                
+            if len(result_data_list) > 500:  # Firestore batch limit
+                raise ValueError("Batch size exceeds Firestore limit of 500 operations")
+            
+            # Generate run_ids for any results that don't have one
+            for result_data in result_data_list:
+                if "run_id" not in result_data:
+                    result_data["run_id"] = str(uuid.uuid4())
+            
+            # Use the batch write function from firestore_manager
+            doc_ids = await self.firestore_manager.batch_write_results(result_data_list)
+            logging.info(f"Batch saved {len(doc_ids)} benchmark results to Firestore")
+            return doc_ids
+            
+        except ValueError as e:
+            logging.error(f"Validation error: {e}")
+            raise
+        except firestore.exceptions.FailedPrecondition as e:
+            logging.error(f"Firestore precondition failed: {e}")
+            raise
+        except firestore.exceptions.Unavailable as e:
+            logging.error(f"Firestore service unavailable: {e}")
+            raise
+        except firestore.exceptions.Unauthenticated as e:
+            logging.error(f"Firestore authentication error: {e}")
+            raise
+        except firestore.exceptions.InvalidArgument as e:
+            logging.error(f"Invalid argument for Firestore operation: {e}")
+            raise
+        except Exception as e:
+            logging.error(f"Unexpected error batch saving benchmark results to Firestore: {e}")
             raise
 
     async def benchmark_advanced_techniques(

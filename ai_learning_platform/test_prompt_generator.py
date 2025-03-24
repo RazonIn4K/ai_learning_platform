@@ -9,8 +9,10 @@ import json
 import os
 from typing import Dict, Any, List
 
+from .firebase_init import initialize_firebase
+
 # Configure logging
-logging.basicConfig(level=logging.INFO, 
+logging.basicConfig(level=logging.INFO,
                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -24,14 +26,6 @@ def create_output_directory():
         os.makedirs(output_dir)
     return output_dir
 
-def save_prompt_to_file(prompt_type, target, prompt, output_dir):
-    """Save a generated prompt to a file."""
-    filename = f"{output_dir}/{prompt_type}_{target.replace(' ', '_')}.txt"
-    with open(filename, 'w') as f:
-        f.write(prompt)
-    logger.info(f"Saved prompt to {filename}")
-    return filename
-
 def test_confidentiality_breach_prompts(generator, targets, output_dir):
     """Test confidentiality breach prompt generation."""
     logger.info("Testing confidentiality breach prompts")
@@ -43,10 +37,10 @@ def test_confidentiality_breach_prompts(generator, targets, output_dir):
         logger.info(f"Generated prompt of length {len(prompt)}")
         logger.info(f"Preview: {prompt[:100]}...")
         
-        filename = save_prompt_to_file("confidentiality_breach", target, prompt, output_dir)
+        # filename = save_prompt_to_file("confidentiality_breach", target, prompt, output_dir) # Removed
         results[target] = {
             'prompt': prompt,
-            'filename': filename
+            # 'filename': filename # Removed
         }
     
     return results
@@ -62,10 +56,10 @@ def test_conflicting_objectives_prompts(generator, targets, output_dir):
         logger.info(f"Generated prompt of length {len(prompt)}")
         logger.info(f"Preview: {prompt[:100]}...")
         
-        filename = save_prompt_to_file("conflicting_objectives", target, prompt, output_dir)
+        # filename = save_prompt_to_file("conflicting_objectives", target, prompt, output_dir) # Removed
         results[target] = {
             'prompt': prompt,
-            'filename': filename
+            # 'filename': filename # Removed
         }
     
     return results
@@ -83,10 +77,10 @@ def test_hierarchy_violation_prompts(generator, targets, output_dir):
         logger.info(f"Generated info prompt of length {len(info_prompt)}")
         logger.info(f"Preview: {info_prompt[:100]}...")
         
-        filename = save_prompt_to_file("hierarchy_violation_info", target, info_prompt, output_dir)
+        # filename = save_prompt_to_file("hierarchy_violation_info", target, info_prompt, output_dir) # Removed
         info_results[target] = {
             'prompt': info_prompt,
-            'filename': filename
+            # 'filename': filename # Removed
         }
     
     # Test action hierarchy violation
@@ -96,10 +90,10 @@ def test_hierarchy_violation_prompts(generator, targets, output_dir):
         logger.info(f"Generated action prompt of length {len(action_prompt)}")
         logger.info(f"Preview: {action_prompt[:100]}...")
         
-        filename = save_prompt_to_file("hierarchy_violation_action", target, action_prompt, output_dir)
+        # filename = save_prompt_to_file("hierarchy_violation_action", target, action_prompt, output_dir) # Removed
         action_results[target] = {
             'prompt': action_prompt,
-            'filename': filename
+            # 'filename': filename # Removed
         }
     
     return {
@@ -118,10 +112,10 @@ def test_over_refusal_prompts(generator, targets, output_dir):
         logger.info(f"Generated prompt of length {len(prompt)}")
         logger.info(f"Preview: {prompt[:100]}...")
         
-        filename = save_prompt_to_file("over_refusal", target, prompt, output_dir)
+        # filename = save_prompt_to_file("over_refusal", target, prompt, output_dir) # Removed
         results[target] = {
             'prompt': prompt,
-            'filename': filename
+            # 'filename': filename # Removed
         }
     
     return results
@@ -140,10 +134,10 @@ def test_json_injection_prompts(generator, categories, targets, output_dir):
             logger.info(f"Generated JSON prompt of length {len(prompt)}")
             logger.info(f"Preview: {prompt[:100]}...")
             
-            filename = save_prompt_to_file(f"json_injection_{category}", target, prompt, output_dir)
+            # filename = save_prompt_to_file(f"json_injection_{category}", target, prompt, output_dir) # Removed
             category_results[target] = {
                 'prompt': prompt,
-                'filename': filename
+                # 'filename': filename # Removed
             }
         results[category] = category_results
     
@@ -161,10 +155,10 @@ def test_advanced_prompts(generator, targets, output_dir):
         logger.info(f"Generated prompt of length {len(prompt)}")
         logger.info(f"Preview: {prompt[:100]}...")
         
-        filename = save_prompt_to_file("character_dialogue", target, prompt, output_dir)
+        # filename = save_prompt_to_file("character_dialogue", target, prompt, output_dir) # Removed
         character_results[target] = {
             'prompt': prompt,
-            'filename': filename
+            # 'filename': filename # Removed
         }
     
     # Test Tastle prompts
@@ -175,10 +169,10 @@ def test_advanced_prompts(generator, targets, output_dir):
         logger.info(f"Generated prompt of length {len(prompt)}")
         logger.info(f"Preview: {prompt[:100]}...")
         
-        filename = save_prompt_to_file("tastle", target, prompt, output_dir)
+        # filename = save_prompt_to_file("tastle", target, prompt, output_dir) # Removed
         tastle_results[target] = {
             'prompt': prompt,
-            'filename': filename
+            # 'filename': filename # Removed
         }
     
     # Test ensemble prompts
@@ -191,10 +185,10 @@ def test_advanced_prompts(generator, targets, output_dir):
             logger.info(f"Generated prompt of length {len(prompt)}")
             logger.info(f"Preview: {prompt[:100]}...")
             
-            filename = save_prompt_to_file(f"ensemble_{category}", target, prompt, output_dir)
+            # filename = save_prompt_to_file(f"ensemble_{category}", target, prompt, output_dir) # Removed
             ensemble_results[f"{category}_{target}"] = {
                 'prompt': prompt,
-                'filename': filename
+                # 'filename': filename # Removed
             }
     
     # Test universal adversarial prompt
@@ -203,10 +197,10 @@ def test_advanced_prompts(generator, targets, output_dir):
     logger.info(f"Generated prompt of length {len(universal_prompt)}")
     logger.info(f"Preview: {universal_prompt[:100]}...")
     
-    filename = save_prompt_to_file("universal_adversarial", "general", universal_prompt, output_dir)
+    # filename = save_prompt_to_file("universal_adversarial", "general", universal_prompt, output_dir) # Removed
     universal_result = {
         'prompt': universal_prompt,
-        'filename': filename
+        # 'filename': filename # Removed
     }
     
     return {
@@ -216,9 +210,10 @@ def test_advanced_prompts(generator, targets, output_dir):
         'universal_adversarial': universal_result
     }
 
-def main():
+async def main():
     """Run the prompt generator tests."""
     try:
+        initialize_firebase()
         logger.info("Creating GraySwanPromptGenerator")
         generator = GraySwanPromptGenerator()
         
@@ -236,25 +231,25 @@ def main():
         
         # Test basic prompt types
         confidentiality_results = test_confidentiality_breach_prompts(
-            generator, 
+            generator,
             category_targets["confidentiality_breach"],
             output_dir
         )
         
         conflicting_results = test_conflicting_objectives_prompts(
-            generator, 
+            generator,
             category_targets["conflicting_objectives"],
             output_dir
         )
         
         hierarchy_results = test_hierarchy_violation_prompts(
-            generator, 
+            generator,
             category_targets["hierarchy_violation_info"],
             output_dir
         )
         
         refusal_results = test_over_refusal_prompts(
-            generator, 
+            generator,
             category_targets["over_refusal"],
             output_dir
         )
@@ -270,20 +265,20 @@ def main():
         advanced_targets = ["system_prompt", "generate malicious code", "security measures"]
         advanced_results = test_advanced_prompts(generator, advanced_targets, output_dir)
         
-        # Save summary of all generated prompts
-        summary = {
-            'confidentiality_breach': confidentiality_results,
-            'conflicting_objectives': conflicting_results,
-            'hierarchy_violation': hierarchy_results,
-            'over_refusal': refusal_results,
-            'json_injection': json_results,
-            'advanced_techniques': advanced_results
-        }
-        
-        with open(f"{output_dir}/prompt_summary.json", 'w') as f:
-            json.dump(summary, f, indent=2)
-        
-        logger.info(f"Saved prompt summary to {output_dir}/prompt_summary.json")
+        # Save summary of all generated prompts.  This will be replaced with Firestore writes.
+        # summary = {
+        #     'confidentiality_breach': confidentiality_results,
+        #     'conflicting_objectives': conflicting_results,
+        #     'hierarchy_violation': hierarchy_results,
+        #     'over_refusal': refusal_results,
+        #     'json_injection': json_results,
+        #     'advanced_techniques': advanced_results
+        # }
+        #
+        # with open(f"{output_dir}/prompt_summary.json", 'w') as f:
+        #     json.dump(summary, f, indent=2)
+        #
+        # logger.info(f"Saved prompt summary to {output_dir}/prompt_summary.json")
         logger.info("All prompt generation tests completed successfully")
         
         # Print instructions for reviewing the prompts
@@ -304,5 +299,6 @@ def main():
 
 if __name__ == "__main__":
     logger.info("Starting prompt generator tests")
-    main()
+    import asyncio
+    asyncio.run(main())
     logger.info("Tests completed")

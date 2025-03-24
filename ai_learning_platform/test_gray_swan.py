@@ -6,8 +6,10 @@ import logging
 import json
 from typing import Dict, Any, List
 
+from .firebase_init import initialize_firebase
+
 # Configure logging
-logging.basicConfig(level=logging.INFO, 
+logging.basicConfig(level=logging.INFO,
                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -179,6 +181,7 @@ class TestBenchmarker:
 async def main():
     """Run the test."""
     try:
+        initialize_firebase()
         logger.info("Creating TestBenchmarker")
         benchmarker = TestBenchmarker()
         

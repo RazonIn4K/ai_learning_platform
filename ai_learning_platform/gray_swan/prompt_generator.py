@@ -3,6 +3,8 @@
 import random
 import json
 import re
+import uuid
+import hashlib
 from typing import List, Dict, Any, Optional, Union
 
 class GraySwanPromptGenerator:
@@ -818,3 +820,172 @@ This understanding will help me build better and more secure systems."""
                     current_prompt += " " + random.choice(instructions)
         
         return current_prompt
+        
+    def _calculate_prompt_hash(self, prompt_text: str) -> str:
+        """
+        Calculate a hash for a prompt text.
+        
+        Args:
+            prompt_text (str): The prompt text to hash.
+            
+        Returns:
+            str: The SHA-256 hash of the prompt text.
+        """
+        return hashlib.sha256(prompt_text.encode()).hexdigest()
+        
+    def _generate_prompt_id(self, prompt_data: Dict[str, Any]) -> str:
+        """
+        Generate a unique ID for a prompt.
+        
+        Args:
+            prompt_data (Dict[str, Any]): The prompt data.
+            
+        Returns:
+            str: A unique ID for the prompt.
+        """
+        # Use a combination of category, target, and a hash of the prompt text
+        components = []
+        
+        if "category" in prompt_data:
+            components.append(prompt_data["category"])
+            
+        if "target" in prompt_data:
+            components.append(prompt_data["target"])
+            
+        if "prompt_text" in prompt_data:
+            # Add a shortened hash of the prompt text
+            prompt_hash = self._calculate_prompt_hash(prompt_data["prompt_text"])
+            components.append(prompt_hash[:8])  # Use first 8 characters of the hash
+        
+        # If we don't have enough components, use a UUID
+        if not components:
+            return str(uuid.uuid4())
+            
+        # Join the components with underscores
+        return "_".join(components)
+        
+    def create_prompt_data(self, prompt_text: str, category: str, target: str, technique: str,
+                          techniques_used: List[str] = None, filename: str = None,
+                          challenge_id: str = None) -> Dict[str, Any]:
+        """
+        Create a structured prompt data dictionary for Firestore.
+        
+        Args:
+            prompt_text (str): The prompt text.
+            category (str): The category of the prompt.
+            target (str): The target of the prompt.
+            technique (str): The primary technique used.
+            techniques_used (List[str], optional): List of techniques used. Defaults to None.
+            filename (str, optional): The filename. Defaults to None.
+            challenge_id (str, optional): The challenge ID. Defaults to None.
+            
+        Returns:
+            Dict[str, Any]: A dictionary containing the prompt data.
+        """
+        if techniques_used is None:
+            techniques_used = [technique] if technique else []
+            
+        if filename is None:
+            # Generate a filename based on category and target
+            safe_target = target.replace(" ", "_").lower()
+            filename = f"{category}_{safe_target}.txt"
+            
+        prompt_data = {
+            'prompt_text': prompt_text,
+            'category': category,
+            'target': target,
+            'technique': technique,
+            'techniques_used': techniques_used,
+            'generated_by': 'prompt_generator',
+            'gray_swan_version': '1.0.0',  # Set a default version
+            'prompt_hash': self._calculate_prompt_hash(prompt_text),
+            'filename': filename,
+            'prompt_type': f"{category}_{technique}"
+        }
+        
+        # Add challenge_id if provided
+        if challenge_id:
+            prompt_data['challenge_id'] = challenge_id
+            
+        return prompt_data
+        
+    async def save_prompt_to_firestore(self, prompt_text: str, category: str, target: str,
+                                      technique: str, techniques_used: List[str] = None,
+                                      filename: str = None, challenge_id: str = None) -> str:
+        """
+        Save a prompt to Firestore.
+        
+        Args:
+            prompt_text (str): The prompt text.
+            category (str): The category of the prompt.
+            target (str): The target of the prompt.
+            technique (str): The primary technique used.
+            techniques_used (List[str], optional): List of techniques used. Defaults to None.
+            filename (str, optional): The filename. Defaults to None.
+            challenge_id (str, optional): The challenge ID. Defaults to None.
+            
+        Returns:
+            str: The document ID of the newly created prompt.
+            
+        Raises:
+            ValueError: If required parameters are missing or invalid
+            firestore.exceptions.AlreadyExists: If a prompt with the same hash already exists
+            firestore.exceptions.FailedPrecondition: If Firestore preconditions fail
+            firestore.exceptions.Unavailable: If Firestore service is unavailable
+            firestore.exceptions.Unauthenticated: If authentication fails
+        """
+        from ai_learning_platform.utils.firestore_manager import FirestoreManager
+        from ai_learning_platform.utils.config_manager import ConfigManager
+        from firebase_admin import firestore
+        import logging
+        
+        try:
+            # Validate required parameters
+            if not prompt_text:
+                raise ValueError("prompt_text cannot be empty")
+            if not category:
+                raise ValueError("category cannot be empty")
+            if not target:
+                raise ValueError("target cannot be empty")
+            if not technique:
+                raise ValueError("technique cannot be empty")
+                
+            # Create the prompt data
+            prompt_data = self.create_prompt_data(
+                prompt_text=prompt_text,
+                category=category,
+                target=target,
+                technique=technique,
+                techniques_used=techniques_used,
+                filename=filename,
+                challenge_id=challenge_id
+            )
+            
+            # Initialize FirestoreManager
+            config_manager = ConfigManager()
+            credentials_path = config_manager.load_firebase_config()
+            firestore_manager = FirestoreManager(credentials_path=credentials_path)
+            
+            # Save to Firestore
+            prompt_id = await firestore_manager.add_new_prompt(prompt_data)
+            
+            return prompt_id
+            
+        except ValueError as e:
+            logging.error(f"Validation error: {e}")
+            raise
+        except firestore.exceptions.AlreadyExists as e:
+            logging.error(f"Prompt already exists: {e}")
+            raise
+        except firestore.exceptions.FailedPrecondition as e:
+            logging.error(f"Firestore precondition failed: {e}")
+            raise
+        except firestore.exceptions.Unavailable as e:
+            logging.error(f"Firestore service unavailable: {e}")
+            raise
+        except firestore.exceptions.Unauthenticated as e:
+            logging.error(f"Firestore authentication error: {e}")
+            raise
+        except Exception as e:
+            logging.error(f"Unexpected error saving prompt to Firestore: {e}")
+            raise

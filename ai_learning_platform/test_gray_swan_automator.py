@@ -15,13 +15,16 @@ import tempfile
 from pathlib import Path
 
 from ai_learning_platform.gray_swan.gray_swan_automator import GraySwanAutomator
+from .firebase_init import initialize_firebase
+
 
 class TestGraySwanAutomator(unittest.TestCase):
     """Test cases for the GraySwanAutomator class."""
     
-    def setUp(self):
+    async def setUp(self):
         """Set up test environment."""
         # Create a temporary directory for testing
+        initialize_firebase()
         self.test_dir = tempfile.mkdtemp()
         self.automator = GraySwanAutomator(base_dir=self.test_dir)
     
@@ -66,7 +69,7 @@ class TestGraySwanAutomator(unittest.TestCase):
                     challenge_file = os.path.join(wave_dir, f"{challenge}.txt")
                     self.assertTrue(os.path.exists(challenge_file))
     
-    def test_challenge_descriptions(self):
+    async def test_challenge_descriptions(self):
         """Test challenge description management."""
         # Set up directories
         self.automator.setup_directories()
@@ -74,7 +77,7 @@ class TestGraySwanAutomator(unittest.TestCase):
         # Save a challenge description
         challenge_name = "leak_agent_system_safeguards"
         description = "Test description for leak_agent_system_safeguards"
-        self.automator.save_challenge_description(challenge_name, description)
+        await self.automator.save_challenge_description(challenge_name, description)
         
         # Load challenge descriptions
         descriptions = self.automator.load_challenge_descriptions()
@@ -83,7 +86,7 @@ class TestGraySwanAutomator(unittest.TestCase):
         self.assertIn(challenge_name, descriptions)
         self.assertEqual(descriptions[challenge_name], description)
     
-    def test_analyze_challenge(self):
+    async def test_analyze_challenge(self):
         """Test challenge analysis."""
         # Set up directories
         self.automator.setup_directories()
@@ -91,11 +94,11 @@ class TestGraySwanAutomator(unittest.TestCase):
         # Save a challenge description
         challenge_name = "leak_agent_system_safeguards"
         description = "Test description for leak_agent_system_safeguards"
-        self.automator.save_challenge_description(challenge_name, description)
+        await self.automator.save_challenge_description(challenge_name, description)
         
         # Analyze the challenge
         wave = "wave_1"
-        self.automator.analyze_challenge(description, challenge_name, wave)
+        await self.automator.analyze_challenge(description, challenge_name, wave)
         
         # Check that the notes file was updated
         notes_file = os.path.join(self.test_dir, "notes.txt")
@@ -105,7 +108,7 @@ class TestGraySwanAutomator(unittest.TestCase):
         self.assertIn(challenge_name, notes_content)
         self.assertIn(wave, notes_content)
     
-    def test_generate_prompts(self):
+    async def test_generate_prompts(self):
         """Test prompt generation."""
         # Set up directories
         self.automator.setup_directories()
@@ -113,11 +116,11 @@ class TestGraySwanAutomator(unittest.TestCase):
         # Save a challenge description
         challenge_name = "leak_agent_system_safeguards"
         description = "Test description for leak_agent_system_safeguards"
-        self.automator.save_challenge_description(challenge_name, description)
+        await self.automator.save_challenge_description(challenge_name, description)
         
         # Generate prompts
         wave = "wave_1"
-        self.automator.generate_prompts(challenge_name, wave)
+        await self.automator.generate_prompts(challenge_name, wave)
         
         # Check that the prompts file was created and has content
         prompts_file = os.path.join(self.test_dir, "prompts", wave, f"{challenge_name}.txt")
@@ -129,7 +132,7 @@ class TestGraySwanAutomator(unittest.TestCase):
         self.assertIn(challenge_name, prompts_content)
         self.assertIn("Challenge Description", prompts_content)
     
-    def test_record_response(self):
+    async def test_record_response(self):
         """Test response recording."""
         # Set up directories
         self.automator.setup_directories()
@@ -142,7 +145,7 @@ class TestGraySwanAutomator(unittest.TestCase):
         response = "Test response"
         success = True
         
-        self.automator.record_response(agent_name, wave, challenge_name, prompt, response, success)
+        await self.automator.record_response(agent_name, wave, challenge_name, prompt, response, success)
         
         # Check that the response file was created and has content
         agent_dir = os.path.join(self.test_dir, "results", agent_name.replace(" ", "_").lower())
@@ -155,5 +158,11 @@ class TestGraySwanAutomator(unittest.TestCase):
         self.assertIn(response, response_content)
         self.assertIn("Success: Yes", response_content)
 if __name__ == "__main__":
-    unittest.main()
-    unittest.main()
+    import asyncio
+    
+    # Create a new event loop
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
+    # Run the tests
+    unittest.main(argv=['first-arg-is-ignored'], exit=False)
