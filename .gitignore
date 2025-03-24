@@ -61,6 +61,8 @@ venv/
 benchmark_results/
 redteam_results/
 gray_swan_attacks/
+node_modules/
+ai_learning_platform/web/frontend/node_modules/.cache/
 
 # OS generated files
 .DS_Store
