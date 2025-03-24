@@ -54,7 +54,7 @@ class FirestoreManager:
     A class to encapsulate helper functions for interacting with Firestore.
     """
 
-    def __init__(self, credentials_path: str):
+    async def __init__(self, credentials_path: str):
         """
         Initializes the FirestoreManager with the path to the Firebase credentials.
 
@@ -64,7 +64,7 @@ class FirestoreManager:
         self._config_manager = ConfigManager()
         self._credentials_path = credentials_path
         self._uid = self._config_manager.load_uid()
-        self._initialize_firebase()
+        await self._initialize_firebase()
 
     async def _initialize_firebase(self):
         """

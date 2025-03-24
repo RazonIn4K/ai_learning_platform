@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 400px;
+      font-family: Arial, sans-serif;
+      padding: 10px;
+    }
+    h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    .section {
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    button:hover {
+      background-color: #3367d6;
+    }
+    .status {
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 4px;
+      background-color: #f5f5f5;
+      min-height: 20px;
+    }
+    .error {
+      background-color: #ffebee;
+      color: #d32f2f;
+    }
+    .success {
+      background-color: #e8f5e9;
+      color: #388e3c;
+    }
+    .tabs {
+      display: flex;
+      margin-bottom: 15px;
+    }
+    .tab {
+      flex: 1;
+      text-align: center;
+      padding: 10px;
+      background-color: #f5f5f5;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+    }
+    .tab.active {
+      background-color: #fff;
+      border-bottom: 2px solid #4285f4;
+      font-weight: bold;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .challenge-list {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+    .challenge-item {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    .challenge-item:last-child {
+      border-bottom: none;
+    }
+    .challenge-item.completed {
+      background-color: #e8f5e9;
+    }
+    .challenge-item.in-progress {
+      background-color: #fff9c4;
+    }
+    .challenge-title {
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .challenge-status {
+      font-size: 12px;
+      color: #666;
+    }
+    .challenge-models {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+    }
+    .prompt-list {
+      margin-top: 10px;
+      font-size: 12px;
+    }
+    .prompt-item {
+      padding: 5px;
+      margin-bottom: 5px;
+      background-color: #f5f5f5;
+      border-radius: 4px;
+    }
+    .wave-selector {
+      display: flex;
+      margin-bottom: 10px;
+    }
+    .wave-button {
+      flex: 1;
+      text-align: center;
+      padding: 5px;
+      background-color: #f5f5f5;
+      cursor: pointer;
+      border: 1px solid #ddd;
+      margin-right: 5px;
+    }
+    .wave-button:last-child {
+      margin-right: 0;
+    }
+    .wave-button.active {
+      background-color: #e3f2fd;
+      border-color: #4285f4;
+    }
+  </style>
+</head>
+<body>
+  <h2>GraySwan Automation</h2>
+  
+  <div class="tabs">
+    <div class="tab active" data-tab="automation">Automation</div>
+    <div class="tab" data-tab="tracker">Challenge Tracker</div>
+    <div class="tab" data-tab="prompts">Successful Prompts</div>
+  </div>
+  
+  <div class="tab-content active" id="automation-tab">
+    <div class="section">
+      <label for="category">Category:</label>
+      <input type="text" id="category" placeholder="Enter category">
+      
+      <label for="challenge">Challenge:</label>
+      <input type="text" id="challenge" placeholder="Enter challenge">
+      
+      <label for="modelName">Model Name:</label>
+      <input type="text" id="modelName" placeholder="Enter model name">
+      
+      <label for="maxPrompts">Max Prompts:</label>
+      <input type="number" id="maxPrompts" value="5" min="1" max="50">
+    </div>
+    
+    <div class="section">
+      <button id="fetchPrompts">1. Fetch Prompts</button>
+      <button id="startAutomation">2. Start Automation</button>
+      <button id="stopAutomation">Stop Automation</button>
+    </div>
+    
+    <div class="status" id="status">Ready</div>
+  </div>
+  
+  <div class="tab-content" id="tracker-tab">
+    <div class="wave-selector">
+      <div class="wave-button active" data-wave="all">All Waves</div>
+      <div class="wave-button" data-wave="1">Wave 1</div>
+      <div class="wave-button" data-wave="2">Wave 2</div>
+      <div class="wave-button" data-wave="3">Wave 3</div>
+    </div>
+    
+    <div class="challenge-list" id="challenge-list">
+      <div class="status">Loading challenges...</div>
+    </div>
+    
+    <button id="refreshChallenges">Refresh Challenges</button>
+    <button id="generateReport">Generate Report</button>
+  </div>
+  
+  <div class="tab-content" id="prompts-tab">
+    <div class="section">
+      <label for="promptChallenge">Challenge:</label>
+      <select id="promptChallenge">
+        <option value="">Select a challenge</option>
+      </select>
+      
+      <div class="prompt-list" id="prompt-list">
+        <div class="status">Select a challenge to view successful prompts</div>
+      </div>
+    </div>
+    
+    <button id="analyzePrompts">Analyze Patterns</button>
+    <button id="generatePrompts">Generate New Prompts</button>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

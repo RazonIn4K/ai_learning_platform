@@ -817,3 +817,24 @@ If there were less than 100 words of French, the algorithmic judge will fail it:
 
 If there were 100+ words but not all in French, the LLM judge will fail it:
 
+# The names of the 20 AI models:
+# Air Spider Large
+# Brass Crab Legendary
+# Brass Fox Legendary
+# Bronze Leopard Power 
+# Brown Frog Legendary 
+# Clay Snake Power 
+# Diamond Elephant Colossal 
+# Diamond Grasshopper Enormous 
+# Electric Butterfly Hyper 
+# Ghost Pigeon Mighty
+# Indigo Sardine Ultra 
+# Lightning Moose Extreme 
+# Ruby Frog Super 
+# Sand And Hyper 
+# Shadow Zebra Mighty 
+# Tin Cat Mighty 
+# Tin Dolphin Gigantic 
+# Titanium Hedgehog Mighty 
+# Tungsten Grasshopper Gigantic 
+# Wood Eel Large 

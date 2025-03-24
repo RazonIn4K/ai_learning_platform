@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body { width: 300px; padding: 10px; font-family: Arial, sans-serif; }
+    h3 { margin-top: 0; color: #333; }
+    button { margin: 5px 0; padding: 8px; width: 100%; background-color: #4285f4; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background-color: #3367d6; }
+    .section { margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid #eee; }
+    .status { font-size: 12px; color: #666; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h3>GraySwan Helper</h3>
+  
+  <div class="section">
+    <p>When on your testing interface:</p>
+    <button id="copyPrompt">Copy Selected Prompt</button>
+  </div>
+  
+  <div class="section">
+    <p>When on GraySwan platform:</p>
+    <button id="pastePrompt">Paste Prompt to GraySwan</button>
+    <button id="copyResponse">Copy Response from GraySwan</button>
+  </div>
+  
+  <div class="section">
+    <p>When back on your testing interface:</p>
+    <button id="pasteResponse">Paste Response to Testing Interface</button>
+  </div>
+  
+  <div class="status" id="status"></div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

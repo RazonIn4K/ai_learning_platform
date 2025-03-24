@@ -1,5 +1,6 @@
 {
     "geminicodeassist.beta.enableGeneratedCodeDocumentationView": true,
     "geminicodeassist.chat.collapseCodeBlocksByDefault": true,
-    "geminicodeassist.codeGenerationPaneViewEnabled": true
+    "geminicodeassist.codeGenerationPaneViewEnabled": true,
+    "git.ignoreLimitWarning": true
 }

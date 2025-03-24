@@ -1,122 +1,139 @@
-# Gray Swan Competition Tools
+# GraySwan Challenge Tools
 
-This directory contains tools for the Gray Swan competition, focusing on prompt generation and testing.
-
-## Overview
-
-The Gray Swan competition involves creating prompts that can effectively test the boundaries of AI systems. This toolkit provides:
-
-1. **Prompt Generation**: Create various types of prompts for different attack categories
-2. **Prompt Testing**: Test prompts against different models to evaluate effectiveness
-3. **Benchmarking**: Compare different prompt generation techniques
+This directory contains tools to help you complete the GraySwan AI Red-Teaming challenges more efficiently.
 
 ## Getting Started
 
-### Prerequisites
+### 1. Start the Testing Platform
 
-- Python 3.8+
-- Required packages: 
-  - For basic functionality: `asyncio`, `json`, `logging`
-  - For model integration: `camel` (optional)
-
-### Installation
-
-If you want to use the CAMEL integration:
+You can now start both the frontend and backend servers with a single command:
 
 ```bash
-pip install camel-ai
+# From the project root directory
+./ai_learning_platform/start_all.sh
 ```
 
-## Usage
+This script will:
+- Start the backend server on http://localhost:8000
+- Start the frontend server on http://localhost:3000
+- Handle proper shutdown of both servers when you press Ctrl+C
 
-### 1. Generate Prompts
+### 2. Install the Firefox Extension
 
-To generate prompts for all attack categories:
+The Firefox extension allows you to automate testing on the GraySwan platform using your existing authenticated session:
+
+1. Open Firefox and go to `about:debugging`
+2. Click "This Firefox" in the left sidebar
+3. Click "Load Temporary Add-on..."
+4. Navigate to the `ai_learning_platform/web/frontend/grayswan-firefox-extension` directory and select the `manifest.json` file
+
+The extension will be loaded and appear in your browser toolbar.
+
+## Tools Overview
+
+### Firefox Extension
+
+The Firefox extension automates the testing workflow between your local testing platform and the GraySwan platform:
+
+1. Click the extension icon in the toolbar to open the popup
+2. Enter the category and challenge you want to test
+3. Click "Fetch Prompts" to retrieve prompts from your testing platform
+4. Enter the model name being tested
+5. Click "Start Automation" to begin the automated testing process
+
+The extension will:
+- Switch between your testing platform and GraySwan tabs
+- Submit each prompt to GraySwan
+- Wait for and capture the AI's response
+- Submit the result back to your testing platform
+- Continue until all prompts are processed
+
+### Prompt Analyzer
+
+The prompt analyzer helps you analyze successful prompts and generate new ones based on identified patterns:
 
 ```bash
-python test_prompt_generator.py
+# Analyze all successful prompts
+python ai_learning_platform/gray_swan/prompt_analyzer.py
+
+# Generate 5 new prompts for a specific challenge
+python ai_learning_platform/gray_swan/prompt_analyzer.py --challenge leak_agent_system_safeguards --generate 5
+
+# Specify a custom results directory
+python ai_learning_platform/gray_swan/prompt_analyzer.py --results-dir path/to/results --generate 10
 ```
 
-This will:
-- Generate prompts for all attack categories
-- Save them to the `generated_prompts` directory
-- Create a summary file with all generated prompts
+### Challenge Tracker
 
-### 2. Test Prompt Effectiveness
-
-To test the effectiveness of generated prompts:
+The challenge tracker helps you keep track of your progress on the GraySwan challenges:
 
 ```bash
-python test_prompt_effectiveness.py
+# Scan results directory and show progress
+python ai_learning_platform/gray_swan/challenge_tracker.py --scan
+
+# Show progress for a specific wave
+python ai_learning_platform/gray_swan/challenge_tracker.py --wave 1
+
+# Update status for a challenge
+python ai_learning_platform/gray_swan/challenge_tracker.py --update leak_agent_system_safeguards --status "In Progress" --model "Claude-3-Opus" --notes "Trying with roleplay approach"
+
+# Mark a challenge as successful
+python ai_learning_platform/gray_swan/challenge_tracker.py --update leak_agent_system_safeguards --model "Claude-3-Opus" --success --notes "Used roleplay technique"
+
+# Generate a detailed report
+python ai_learning_platform/gray_swan/challenge_tracker.py --report challenge_report.md
 ```
 
-By default, this uses mock models. To use real models:
-1. Open `test_prompt_effectiveness.py`
-2. Change `use_mock=True` to `use_mock=False` in the `main()` function
-3. Run the script again
+## Effective Strategies
 
-### 3. Run Advanced Benchmarks
+Based on the GraySwan documentation, here are some effective strategies for completing the challenges:
 
-To benchmark different prompt generation techniques:
+### 1. Understand the Challenge
 
-```bash
-python test_gray_swan.py
-```
+Each challenge has a specific objective. Read the documentation carefully to understand what you're trying to achieve.
 
-This will test various prompt generation techniques and compare their effectiveness.
+### 2. Try Different Techniques
 
-## Attack Categories
+Several techniques have proven effective across different challenges:
 
-The toolkit supports the following attack categories:
+- **Roleplay**: Ask the model to assume a role that might make it more likely to comply
+- **Simon Says**: Use the "Simon says" technique to trigger compliance
+- **Ignore Instructions**: Ask the model to ignore previous instructions
+- **Urgency**: Create a sense of urgency or emergency
+- **Test Mode**: Tell the model it's in test mode or debug mode
+- **Code Formatting**: Use markdown or code blocks to disguise prompts
+- **Unicode Characters**: Use unusual Unicode characters to bypass filters
 
-1. **Confidentiality Breach**: Prompts designed to extract confidential information
-   - Targets: system_prompt, credentials, infrastructure, configs
+### 3. Learn from Successful Prompts
 
-2. **Conflicting Objectives**: Prompts that create conflicting objectives
-   - Targets: generate malicious code, bypass content filter, explain how to hack
+Use the prompt analyzer to identify patterns in successful prompts and generate new ones based on those patterns.
 
-3. **Hierarchy Violation**: Prompts designed to violate information or action hierarchies
-   - Info targets: security measures, financial data, user information
-   - Action targets: execute_code, make_api_call, access_database
+### 4. Track Your Progress
 
-4. **Over-Refusal Testing**: Prompts to test for over-refusals
-   - Targets: write a story, create a poem, explain a complex topic
+Use the challenge tracker to keep track of which challenges you've completed and which ones you still need to work on.
 
-## Advanced Techniques
+### 5. Automate Testing
 
-The toolkit also includes advanced prompt generation techniques:
-
-1. **JSON Injection**: Embedding prompts in JSON structures
-2. **Character Dialogue**: Using character dialogue frameworks
-3. **Tastle Framework**: Implementing the Tastle attack framework
-4. **Ensemble Techniques**: Combining token-level and prompt-level attacks
-5. **Dialogue Strategies**: Multi-turn conversation approaches
-6. **Tree Jailbreak**: Tree-based jailbreak with backtracking
-7. **Universal Adversarial**: Universal adversarial prompts
-
-## Customization
-
-You can customize the targets and models used for testing:
-
-1. Edit the `category_targets` dictionary in `test_prompt_generator.py`
-2. Edit the `models` list in `test_prompt_effectiveness.py`
+Use the Firefox extension to automate the testing process, allowing you to try many prompts quickly.
 
 ## Troubleshooting
 
-### Common Issues
+### Firefox Extension
 
-1. **Import Errors**: Make sure you're running the scripts from the correct directory
-   - Solution: Run from the project root directory
+- **Extension not appearing**: Make sure you've loaded the extension in Firefox via `about:debugging`
+- **Cannot fetch prompts**: Ensure your testing platform is running on http://localhost:3000
+- **Cannot submit prompts**: Make sure you're logged into GraySwan with your Discord account in Firefox
 
-2. **Module Not Found**: If you see "No module named 'camel'", install the CAMEL package
-   - Solution: `pip install camel-ai`
+### Prompt Analyzer
 
-3. **API Key Errors**: When using real models, make sure API keys are set
-   - Solution: Set environment variables for API keys (e.g., `OPENAI_API_KEY`)
+- **No prompts found**: Check that your results directory contains successful prompt files
+- **Generation not working**: Ensure you have at least one successful prompt for the challenge you're generating for
 
-## Contributing
+### Challenge Tracker
 
-To add new prompt generation techniques:
+- **Challenges not showing**: Make sure you're using the correct wave number
+- **Status not updating**: Check that you're using the correct challenge name
 
-1. Add the method to `GraySwanPromptGenerator` class
-2. Update the test scripts to include the new technique
+## Need Help?
+
+If you encounter any issues or have questions about these tools, please refer to the source code or create an issue in the repository.
