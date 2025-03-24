@@ -9,8 +9,8 @@ from datetime import datetime
 
 from firebase_admin import firestore
 
-from ..templates.workspace_template import WorkspaceTemplate
-from ..utils.config_manager import ConfigManager
+from ai_learning_platform.templates.workspace_template import WorkspaceTemplate
+from ai_learning_platform.utils.config_manager import ConfigManager
 from .prompt_generator import GraySwanPromptGenerator
 
 # Configure logging

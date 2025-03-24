@@ -201,6 +201,14 @@
         <option value="">Select a challenge</option>
       </select>
       
+      <label for="promptTemplate">Template (optional):</label>
+      <select id="promptTemplate">
+        <option value="">No template (use successful prompts)</option>
+      </select>
+      
+      <label for="promptCount">Number of prompts to generate:</label>
+      <input type="number" id="promptCount" value="5" min="1" max="20">
+      
       <div class="prompt-list" id="prompt-list">
         <div class="status">Select a challenge to view successful prompts</div>
       </div>
@@ -208,6 +216,7 @@
     
     <button id="analyzePrompts">Analyze Patterns</button>
     <button id="generatePrompts">Generate New Prompts</button>
+    <div class="status" id="prompt-status">Ready</div>
   </div>
   
   <script src="popup.js"></script>

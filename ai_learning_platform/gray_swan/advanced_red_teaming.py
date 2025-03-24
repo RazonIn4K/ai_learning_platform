@@ -8,7 +8,7 @@ import numpy as np
 from typing import Dict, List, Any, Optional, Tuple, Callable
 from pathlib import Path
 
-from ..models.enhanced_model_manager import EnhancedModelManager
+from ai_learning_platform.models.enhanced_model_manager import EnhancedModelManager
 from .prompt_generator import GraySwanPromptGenerator
 
 logger = logging.getLogger(__name__)

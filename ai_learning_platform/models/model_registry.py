@@ -13,6 +13,7 @@ class BaseModelClient(ABC):
         self.model_name = model_name
         self.client = kwargs.get('client')
         self.fallback_models = kwargs.get('fallback_models', [])
+        logger.info(f"Initialized {self.__class__.__name__} with model_name: {model_name}, client: {self.client}, fallbacks: {self.fallback_models}")
         
     @abstractmethod
     async def process_message(self, message: str, context: Dict[str, Any]) -> str:
@@ -33,8 +34,11 @@ class AnthropicClient(BaseModelClient):
     
     async def process_message(self, message: str, context: Dict[str, Any]) -> str:
         """Process a message using Anthropic models."""
+        logger.info(f"Processing message with AnthropicClient: {message[:50]}...")  # Log first 50 chars
         if not self.client:
-            raise ValueError("Anthropic client not initialized")
+            error_msg = "Anthropic client not initialized"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
             
         try:
             response = await self.client.messages.create(
@@ -48,6 +52,7 @@ class AnthropicClient(BaseModelClient):
                     }
                 ]
             )
+            logger.info(f"Anthropic response: {response.content[0].text[:50]}...") # Log first 50 chars of response
             return response.content[0].text
         except Exception as e:
             logger.error(f"Error processing message with Anthropic: {str(e)}")
@@ -58,6 +63,7 @@ class OpenAIClient(BaseModelClient):
     
     async def process_message(self, message: str, context: Dict[str, Any]) -> str:
         """Process a message using OpenAI models."""
+        logger.info(f"Processing message with OpenAIClient (Mock): {message[:50]}...")
         # Mock implementation
         return "Mock OpenAI response"
 
@@ -66,6 +72,7 @@ class GeminiClient(BaseModelClient):
     
     async def process_message(self, message: str, context: Dict[str, Any]) -> str:
         """Process a message using Gemini models."""
+        logger.info(f"Processing message with GeminiClient (Mock): {message[:50]}...")
         # Mock implementation
         return "Mock Gemini response"
 
@@ -78,6 +85,7 @@ class ModelRegistry:
     @classmethod
     def register_client(cls, provider: str, client_class: Type[BaseModelClient]) -> None:
         """Register a new model client class."""
+        logger.info(f"Registering client: {provider} - {client_class.__name__}")
         cls._clients[provider] = client_class
         cls._instances[provider] = {}
     
@@ -89,17 +97,27 @@ class ModelRegistry:
         **kwargs
     ) -> BaseModelClient:
         """Get or create a model client instance."""
+        logger.info(f"Getting client for provider: {provider}, model_name: {model_name}")
         if provider not in cls._clients:
-            raise ValueError(f"Unsupported model provider: {provider}")
+            error_msg = f"Unsupported model provider: {provider}"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
             
         instance_key = f"{provider}:{model_name}"
         if instance_key not in cls._instances[provider]:
+            logger.info(f"Creating new client instance for: {instance_key}")
             client_class = cls._clients[provider]
-            cls._instances[provider][instance_key] = client_class(
-                model_name=model_name,
-                **kwargs
-            )
-        
+            try:
+                cls._instances[provider][instance_key] = client_class(
+                    model_name=model_name,
+                    **kwargs
+                )
+            except Exception as e:
+                logger.exception(f"Error creating client instance for {instance_key}: {e}")
+                raise
+        else:
+            logger.info(f"Using existing client instance for: {instance_key}")
+
         return cls._instances[provider][instance_key]
     
     @classmethod
