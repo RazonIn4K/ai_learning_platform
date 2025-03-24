@@ -1,3 +1,70 @@
+# .gitignore
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as long as the template is
+#  in version control, these files should not be.
+#  If you are using PyInstaller to build the exe, you may want to
+#  uncomment these lines.
+# # *.spec
+# # build/
+# # dist/
+
+# IDE / editor files
+.vscode/
+.idea/
+*.iml
+
+# Test / coverage reports
+.coverage
+.pytest_cache/
+htmlcov/
+
+# Translations
+*.mo
+*.pot
+
+# Environments
+.env
+.venv
+env/
+venv/
+
+# My custom directories
+benchmark_results/
+redteam_results/
+gray_swan_attacks/
+
+# OS generated files
+.DS_Store
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
